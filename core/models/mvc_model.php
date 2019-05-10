@@ -9,6 +9,7 @@ class MvcModel {
     public $belongs_to = null;
     public $has_many = null;
     public $has_and_belongs_to_many = null;
+    public $custom_joins = null;
     public $associations = null;
     public $properties = null;
     public $validation_error = null;
@@ -414,6 +415,21 @@ class MvcModel {
 					}
 
                     $options['joins'][$key] = $join;
+                }
+            }
+        }
+        $options = $this->process_custom_joins($options);
+        return $options;
+    }
+
+    protected function process_custom_joins($options) {
+        if (!empty($options['custom_joins'])) {
+            foreach ($options['custom_joins'] as $join) {
+                if (in_array($join, array_keys($this->custom_joins))
+                    and (in_array($this->custom_joins[$join]['reference'], array_keys($options['joins']))
+                        or in_array($this->custom_joins[$join]['reference'], array_keys($this->custom_joins))
+                        or is_null($this->custom_joins[$join]['reference']))) {
+                    $options['joins'][$join] = $this->custom_joins[$join];
                 }
             }
         }
