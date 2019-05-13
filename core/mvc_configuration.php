@@ -35,6 +35,7 @@ class MvcConfiguration {
     }
 
     static function append($config, $value = null) {
+        global $plugin_name;
         $_this =& MvcConfiguration::get_instance();
 
         if (!is_array($config)) {
@@ -43,9 +44,9 @@ class MvcConfiguration {
 
         foreach ($config as $name => $value) {
             if (empty($_this->{$name})) {
-                $_this->{$name} = $value;
+                $_this->{$name}[$plugin_name] = $value;
             } else {
-                $_this->{$name} = array_merge($_this->{$name}, $value);
+                $_this->{$name}[$plugin_name] = array_merge($_this->{$name}, $value);
             }
         }
         

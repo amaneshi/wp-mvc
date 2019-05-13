@@ -177,7 +177,7 @@ abstract class MvcLoader {
     
     protected function load_controllers() {
     
-        foreach ($this->plugin_app_paths as $plugin_app_path) {
+        foreach ($this->plugin_app_paths as $plugin_name => $plugin_app_path) {
         
             $admin_controller_filenames = $this->file_includer->require_php_files_in_directory($plugin_app_path.'controllers/admin/');
             $public_controller_filenames = $this->file_includer->require_php_files_in_directory($plugin_app_path.'controllers/');
@@ -185,12 +185,12 @@ abstract class MvcLoader {
             foreach ($admin_controller_filenames as $filename) {
                 if (preg_match('/admin_([^\/]+)_controller\.php/', $filename, $match)) {
                     $controller_name = $match[1];
-                    $this->admin_controller_names[] = $controller_name;
+                    $this->admin_controller_names[$plugin_name][] = $controller_name;
                     $capabilities = MvcConfiguration::get('admin_controller_capabilities');
                     if (empty($capabilities) || !isset($capabilities[$controller_name])) {
                         $capabilities = array($controller_name => 'administrator');
                     }
-                    $this->admin_controller_capabilities[$controller_name] = $capabilities[$controller_name];
+                    $this->admin_controller_capabilities[$plugin_name][$controller_name] = $capabilities[$controller_name];
                 }
             }
             

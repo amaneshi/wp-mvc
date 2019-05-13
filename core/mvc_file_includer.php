@@ -3,7 +3,7 @@
 class MvcFileIncluder {
 
     private $core_path = '';
-    private $plugin_paths = array();
+    private $plugin_app_paths = array();
     private $theme_path = '';
 
     function __construct() {
@@ -92,11 +92,13 @@ class MvcFileIncluder {
 
     public function include_all_app_files($filepath) {
         $included = false;
-        foreach ($this->plugin_app_paths as $plugin_app_path) {
+        global $plugin_name;
+        foreach ($this->plugin_app_paths as $plugin_name => $plugin_app_path) {
             if ($this->include_file($plugin_app_path.$filepath)) {
                 $included = true;
             }
         }
+        unset ($GLOBALS['plugin_name']);
         return $included;
     }
 
