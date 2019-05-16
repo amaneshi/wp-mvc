@@ -121,16 +121,18 @@ class MvcDatabaseAdapter {
                 $key = $this->defaults['model_name'].'.'.$key;
             }
 
-            $operator = preg_match('/\s+(<|>|<=|>=|<>|\!=|IS|[\w\s]+)/', $key) ? ' ' : ' = ';
+            $operator = preg_match('/\s+(<|>|<=|>=|<>|!=|IS|[\w\s]+)/', $key) ? ' ' : ' = ';
             
-            $functions = array('NULL', 'NOW()', 'CURDATE()', 'CURTIME()', 'CURRENT_TIMESTAMP()', 'CURRENT_TIMESTAMP()');
+            $functions = array('NULL', 'NOW()', 'CURDATE()', 'CURTIME()', 'CURRENT_TIMESTAMP()');
             
             if(in_array($value, $functions) || is_null($value)){
                 if((is_null($value) || $value === 'NULL')){
-                    if(trim($operator) == "="){
+                    $is_not_operator = preg_match('/(<>|!=)/', $key);
+                    if(!$is_not_operator){
                         $operator = " IS ";
                     }
-                    else if(trim($operator) == "!="){
+                    else {
+                        $key = preg_replace('/\s+(<>|!=)/', '', $key);
                         $operator = " IS NOT ";
                     }
                     $value = "NULL";
