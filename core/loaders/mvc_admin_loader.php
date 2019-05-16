@@ -68,11 +68,15 @@ class MvcAdminLoader extends MvcLoader {
 
             $admin_pages = MvcConfiguration::get('AdminPages.' . $plugin_name);
             $single_root_page = MvcConfiguration::get('SingleRootMenu.' . $plugin_name);
-            $is_nested_menu = !empty($single_root_page);
+            $is_nested_menu = is_array($single_root_page);
 
+            $root_page_slug = null;
             if ($is_nested_menu) {
                 $add_pages = array();
-                $this->add_root_menu_page($single_root_page, $plugin_name);
+                $root_page_slug = isset($single_root_page['controller'])
+                    ? MvcInflector::underscore(MvcInflector::camelize($plugin_name)) . '_root_page'
+                    : 'mvc_' . $this->admin_controller_names[$plugin_name][0];
+                $this->add_root_menu_page($single_root_page, $plugin_name, $root_page_slug);
             }
 
             foreach ($this->admin_controller_names[$plugin_name] as $controller_name) {
@@ -105,12 +109,12 @@ class MvcAdminLoader extends MvcLoader {
                         ));
                     };
                     $capability = !empty($pages['capability']) ? $pages['capability'] : $this->admin_controller_capabilities[$plugin_name][$controller_name];
-                    $label = !empty($pages['label']) ? $pages['label'] : $controller_titleized;
+                    $label = __(!empty($pages['label']) ? $pages['label'] : $controller_titleized, $plugin_name);
 
                     if ($is_nested_menu) {
 
                         $sub_pages[] = array(
-                            'parent_slug' => MvcInflector::underscore(MvcInflector::camelize($plugin_name)) . '_root_page',
+                            'parent_slug' => $root_page_slug,
                             'page_title' => $label,
                             'menu_title' => $label,
                             'capability' => $capability,
@@ -178,7 +182,7 @@ class MvcAdminLoader extends MvcLoader {
                         if ($admin_page['in_menu']) {
                             if ($is_nested_menu) {
                                 $add_pages[] = array(
-                                    'menu_title' => $admin_page['label'] . ' ' . MvcInflector::singularize($controller_titleized),
+                                    'menu_title' => __($admin_page['label'] . ' ' . MvcInflector::singularize($controller_titleized), $plugin_name),
                                     'menu_slug' => $page_handle,
                                     'function' => array($this->dispatcher, $method),
                                     'href' => MvcRouter::admin_url(array('controller' => $admin_controller_name, 'action' => $admin_page['action'])),
@@ -187,8 +191,8 @@ class MvcAdminLoader extends MvcLoader {
                             } else {
                                 $sub_pages[] = array(
                                     'parent_slug' => $parent_slug,
-                                    'page_title' => $admin_page['label'] . ' &lsaquo; ' . $controller_titleized,
-                                    'menu_title' => $admin_page['label'],
+                                    'page_title' => __($admin_page['label'] . ' &lsaquo; ' . $controller_titleized, $plugin_name),
+                                    'menu_title' => __($admin_page['label'], $plugin_name),
                                     'capability' => $admin_page['capability'],
                                     'menu_slug' => $page_handle,
                                     'function' => array($this->dispatcher, $method),
@@ -244,38 +248,39 @@ class MvcAdminLoader extends MvcLoader {
                 add_action('wp_before_admin_bar_render', function () use ($add_pages, $plugin_name) {
                     $this->add_admin_bar_pages($add_pages, $plugin_name);
                 });
-
-                add_filter('parent_file', function ($parent_file) use ($plugin_name) {
-                    return $this->set_active_parent_menu_slug($parent_file, $plugin_name);
-                });
-
-                add_filter('submenu_file', array(&$this, 'set_active_submenu_slug'));
             }
+            add_filter('parent_file', function ($parent_file) use ($root_page_slug) {
+                return $this->set_active_parent_menu_slug($parent_file, $root_page_slug);
+            });
+            add_filter('submenu_file', function ($submenu_file) use ($root_page_slug) {
+                return $this->set_active_submenu_slug($submenu_file, $root_page_slug);
+            });
         }
     }
 
-    function set_active_parent_menu_slug($parent_file, $plugin_name) {
+    public function set_active_parent_menu_slug($parent_file, $root_page_slug) {
         global $plugin_page, $pagenow;
         if ($pagenow === 'admin.php' and substr($plugin_page, 0, 4) === 'mvc_')
-            $parent_file = MvcInflector::underscore(MvcInflector::camelize($plugin_name)) . '_root_page';
+            $parent_file = $root_page_slug ?: explode('-', $plugin_page, 2)[0];
 
         return $parent_file;
     }
 
-    function set_active_submenu_slug($submenu_file) {
+    public function set_active_submenu_slug($submenu_file, $root_page_slug) {
         global $plugin_page, $pagenow;
         if ($pagenow === 'admin.php' and substr($plugin_page, 0, 4) === 'mvc_')
-            $submenu_file = explode('-', $plugin_page, 2)[0];
+            $submenu_file = $root_page_slug ? explode('-', $plugin_page, 2)[0] : null;
 
         return $submenu_file;
     }
 
-    public function add_root_menu_page($root_page, $plugin_name) {
+    public function add_root_menu_page($root_page, $plugin_name, $root_page_slug) {
+
         $default_root_page = array(
-            'page_title' => __(MvcInflector::titleize($plugin_name) . ' Plugin', $plugin_name),
-            'menu_title' => __(MvcInflector::titleize($plugin_name) . ' Plugin', $plugin_name),
+            'page_title' => null,
+            'menu_title' => MvcInflector::titleize($plugin_name) . ' Plugin',
             'capability' => 'administrator',
-            'menu_slug' => MvcInflector::underscore(MvcInflector::camelize($plugin_name)) . '_root_page',
+            'menu_slug' => $root_page_slug,
             'controller' => null,
             'action' => null,
             'icon_url' => 'dashicons-admin-generic',
@@ -286,11 +291,11 @@ class MvcAdminLoader extends MvcLoader {
         $controller = $root_page['controller'];
         $action = $root_page['action'] ?: 'index';
 
-        $root_page['function'] = $controller ? array($this->dispatcher, 'admin_' . $controller . '_' . $action) : array($this, 'default_root_page');
+        $root_page['function'] = array($this->dispatcher, 'admin_' . ($controller ?: substr($root_page_slug, 4)) . '_' . $action);
 
         add_menu_page(
             $root_page['page_title'],
-            $root_page['menu_title'],
+            __($root_page['menu_title'], $plugin_name),
             $root_page['capability'],
             $root_page['menu_slug'],
             $root_page['function'],
@@ -299,20 +304,17 @@ class MvcAdminLoader extends MvcLoader {
         );
     }
 
-    public function default_root_page() {
-        echo '<div class="wrap"><h2>Your root page here!</h2><br>Can be any Controller::Action page, setted in configs.</div>';
-    }
-
     public function add_admin_bar_pages($add_pages, $plugin_name) {
 
         global $wp_admin_bar;
-        $root_id = MvcInflector::underscore(MvcInflector::camelize($plugin_name)) . '_root_page';
-        $root_title = MvcInflector::titleize($plugin_name);
+        $root_id = MvcInflector::underscore(MvcInflector::camelize($plugin_name));
+        $root_title = __(MvcInflector::titleize($plugin_name), $plugin_name);
         $wp_admin_bar->add_menu(array(
             'id' => $root_id,
             'title' => '<span class="ab-icon dashicons dashicons-sos"></span>' . $root_title,
         ));
         foreach ($add_pages as $add_page) {
+
             $wp_admin_bar->add_node(array(
                 'parent' => $root_id,
                 'id' => $add_page['menu_slug'],
