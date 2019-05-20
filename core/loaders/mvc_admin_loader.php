@@ -215,9 +215,9 @@ class MvcAdminLoader extends MvcLoader {
             }
 
             //sort sub pages
-            usort($sub_pages, function ($a, $b) {
-                return $a['order'] - $b['order'];
-            });
+            $sub_pages_order = array_column($sub_pages, 'order');
+            $sub_pages_title = array_column($sub_pages, 'menu_title');
+            array_multisort($sub_pages_order, SORT_ASC, $sub_pages_title, SORT_ASC, $sub_pages);
 
             //add sub pages
             foreach ($sub_pages as $page) {
@@ -233,9 +233,9 @@ class MvcAdminLoader extends MvcLoader {
 
             if (!empty($add_pages)) {
                 //sort add pages
-                usort($add_pages, function ($a, $b) {
-                    return $a['order'] - $b['order'];
-                });
+                $add_pages_order = array_column($add_pages, 'order');
+                $add_pages_title = array_column($add_pages, 'menu_title');
+                array_multisort($add_pages_order, SORT_ASC, $add_pages_title, SORT_ASC, $add_pages);
 
                 foreach ($add_pages as $add_page) {
                     $hookname = get_plugin_page_hookname($add_page['menu_slug'], '');
