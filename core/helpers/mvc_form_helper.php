@@ -57,7 +57,7 @@ class MvcFormHelper extends MvcHelper {
             $defaults = array(
                 'type' => $type,
                 'label' => __(MvcInflector::titleize($schema['field']), $this->plugin_name),
-                'value' => empty($this->object->$field_name) ? '' : $this->object->$field_name
+                'value' => !isset($this->object->$field_name) ? '' : $this->object->$field_name
             );
             if ($type == 'checkbox') {
                 unset($defaults['value']);
