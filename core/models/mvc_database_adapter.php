@@ -140,7 +140,8 @@ class MvcDatabaseAdapter {
                 $sql_clauses[] = $this->escape($key).$operator.$value;
             }
             else{
-                $sql_clauses[] = $this->escape($key).$operator.'"'.$this->escape($value).'"';
+                //TODO: Temp comment to remove escape from search condition inside CONCAT_WS()
+                $sql_clauses[] = /*$this->escape($key)*/ $key .$operator.'"'.$this->escape($value).'"';
             }
         }
         return $sql_clauses;

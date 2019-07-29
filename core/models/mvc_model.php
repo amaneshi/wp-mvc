@@ -329,7 +329,7 @@ class MvcModel {
         if (count($formatted_fields) == 1) {
             $field_reference = $formatted_fields[0];
         } else {
-            $field_reference = 'CONCAT('.implode(', ', $formatted_fields).')';
+            $field_reference = 'CONCAT_WS( " ", '.implode(', ', $formatted_fields).')';
         }
         foreach ($keywords as $keyword) {
             $conditions[] = array($field_reference.' LIKE' => '%'.$keyword.'%');
