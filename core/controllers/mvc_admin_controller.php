@@ -100,7 +100,8 @@ class MvcAdminController extends MvcController {
             'format' => '?page_num=%#%',
             'total' => $collection['total_pages'],
             'current' => $collection['page'],
-            'add_args' => $params
+            //TODO: Was passed all search array, now limit only to controller name
+            'add_args' => $params['page']
         ));
     }
     
