@@ -48,6 +48,7 @@ class MvcDatabaseAdapter {
             'joins' => $this->get_joins_sql($options),
             'where' => $this->get_where_sql($options),
             'group' => $this->get_group_sql($options),
+            'having' => $this->get_having_sql($options),
             'order' => $this->get_order_sql($options),
             'limit' => $this->get_limit_sql($options),
         );
@@ -96,6 +97,13 @@ class MvcDatabaseAdapter {
             return '';
         }
         return 'GROUP BY '.$options['group'];
+    }
+
+    public function get_having_sql($options=array()) {
+        if (empty($options['having'])) {
+            return '';
+        }
+        return 'HAVING '.$options['having'];
     }
     
     public function get_where_sql_clauses($conditions, $options=array()) {
