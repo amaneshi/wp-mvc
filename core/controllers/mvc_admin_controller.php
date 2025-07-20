@@ -25,7 +25,7 @@ class MvcAdminController extends MvcController {
             $this->model->delete($this->params['id']);
             $this->flash('notice', __('Successfully deleted!', 'wpmvc'));
         } else {
-            $this->flash('warning', 'A '.MvcInflector::humanize($this->model->name).' with ID "'.$this->params['id'].'" couldn\'t be found.');
+            $this->flash('warning', 'A '.MvcInflector::titleize($this->model->name).' with ID "'.$this->params['id'].'" couldn\'t be found.');
         }
         $url = MvcRouter::admin_url(array('controller' => $this->name, 'action' => 'index'));
         $this->redirect($url);
