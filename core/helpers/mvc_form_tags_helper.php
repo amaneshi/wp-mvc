@@ -3,131 +3,160 @@
 class MvcFormTagsHelper extends MvcHelper {
     
     // Generalized method that chooses the appropriate input type based on the SQL type of the field
-    static function input($field_name, $options=array()) {
-        $defaults = array(
+    /**
+     * @param (mixed|null|string)[] $options
+     *
+     * @param string $field_name
+     */
+    static function input($field_name, $options=[]) : string {
+        $defaults = [
             'id' => self::input_id($field_name),
             'name' => self::input_name($field_name),
             'type' => 'text',
             'label' => null,
             'value' => null
-        );
+        ];
         $options = array_merge($defaults, $options);
         $method = $options['type'].'_input';
-        $html = self::$method($field_name, $options);
-        return $html;
+        return self::$method($field_name, $options);
     }
 
-    public function file_input($field_name, $options=array()) {
-        $defaults = array(
-            'id' => $this->input_id($field_name),
-            'name' => $this->input_name($field_name),
+    /**
+     * @param string $field_name
+     * @param array $options
+     */
+    public function file_input($field_name, $options=[]): string {
+        $defaults = [
+            'id' => self::input_id($field_name),
+            'name' => self::input_name($field_name),
             'type' => 'file'
-        );
+        ];
         $options = array_merge($defaults, $options);
         $attributes_html = self::attributes_html($options, 'input');
-        $html = $this->before_input($field_name, $options);
+        $html = self::before_input($options);
         $html .= '<input'.$attributes_html.' />';
-        $html .= $this->after_input($field_name, $options);
-        return $html;
+        return $html . self::after_input($options);
     }
 
-    static function text_input($field_name, $options=array()) {
-        $defaults = array(
+    /**
+     * @param string $field_name
+     * @param array $options
+     */
+    static function text_input($field_name, $options=[]): string {
+        $defaults = [
             'id' => self::input_id($field_name),
             'name' => self::input_name($field_name),
             'type' => 'text'
-        );
+        ];
         $options = array_merge($defaults, $options);
         $attributes_html = self::attributes_html($options, 'input');
-        $html = self::before_input($field_name, $options);
+        $html = self::before_input($options);
         $html .= '<input'.$attributes_html.' />';
-        $html .= self::after_input($field_name, $options);
-        return $html;
+        return $html . self::after_input($options);
     }
 
-     static function password_input($field_name, $options=array()) {
-        $defaults = array(
+     /**
+      * @param string $field_name
+      * @param array $options
+      */
+     static function password_input($field_name, $options=[]): string {
+        $defaults = [
             'id' => self::input_id($field_name),
             'name' => self::input_name($field_name),
             'type' => 'password'
-        );
+        ];
         $options = array_merge($defaults, $options);
         $attributes_html = self::attributes_html($options, 'input');
-        $html = self::before_input($field_name, $options);
+        $html = self::before_input($options);
         $html .= '<input'.$attributes_html.' />';
-        $html .= self::after_input($field_name, $options);
-        return $html;
+        return $html . self::after_input($options);
     }
 
-    static function wp_editor_input($field_name, $options=array()) {
-        $defaults = array(
+    /**
+     * @param string $field_name
+     * @param array $options
+     */
+    static function wp_editor_input($field_name, $options=[]): string {
+        $defaults = [
             'id' => self::input_id($field_name),
             'name' => self::input_name($field_name),
             'value' => '',
-            'settings' => array('textarea_name' => self::input_name($field_name)),
-        );
+            'settings' => ['textarea_name' => self::input_name($field_name)],
+        ];
         $options = array_merge($defaults, $options);
         $options['settings']['textarea_name'] = $options['name'];
-        $html = self::before_input($field_name, $options);
+        $html = self::before_input($options);
         ob_start();
-        wp_editor( $options['value'], $options['id'], $options['settings'] );
+        wp_editor( (string) ($options['value'] ?? ''), $options['id'], $options['settings'] );
         $html .= ob_get_contents();
         ob_end_clean();
-        $html .= self::after_input($field_name, $options);
-        return $html;
+        return $html . self::after_input($options);
     }
     
-    static function textarea_input($field_name, $options=array()) {
-        $defaults = array(
+    /**
+     * @param string $field_name
+     * @param array $options
+     */
+    static function textarea_input($field_name, $options=[]): string {
+        $defaults = [
             'id' => self::input_id($field_name),
             'name' => self::input_name($field_name),
             'value' => ''
-        );
+        ];
         $options = array_merge($defaults, $options);
         $attributes_html = self::attributes_html($options, 'textarea');
-        $html = self::before_input($field_name, $options);
+        $html = self::before_input($options);
         $html .= '<textarea'.$attributes_html.'>'.$options['value'].'</textarea>';
-        $html .= self::after_input($field_name, $options);
-        return $html;
+        return $html . self::after_input($options);
     }
     
-    static function number_input($field_name, $options=array()) {
-        $defaults = array(
+    /**
+     * @param string $field_name
+     * @param array $options
+     */
+    static function number_input($field_name, $options=[]): string {
+        $defaults = [
             'id' => self::input_id($field_name),
             'name' => self::input_name($field_name),
             'type' => 'number'
-        );
+        ];
         $options = array_merge($defaults, $options);
         $attributes_html = self::attributes_html($options, 'input');
-        $html = self::before_input($field_name, $options);
+        $html = self::before_input($options);
         $html .= '<input'.$attributes_html.' />';
-        $html .= self::after_input($field_name, $options);
-        return $html;
+        return $html . self::after_input($options);
     }
     
-    static function email_input($field_name, $options=array()) {
-        $defaults = array(
+    /**
+     * @param string $field_name
+     * @param array $options
+     */
+    static function email_input($field_name, $options=[]): string {
+        $defaults = [
             'id' => self::input_id($field_name),
             'name' => self::input_name($field_name),
             'type' => 'email'
-        );
+        ];
         $options = array_merge($defaults, $options);
         $attributes_html = self::attributes_html($options, 'input');
-        $html = self::before_input($field_name, $options);
+        $html = self::before_input($options);
         $html .= '<input'.$attributes_html.' />';
-        $html .= self::after_input($field_name, $options);
-        return $html;
+        return $html . self::after_input($options);
     }
     
-    static function checkbox_input($field_name, $options=array()) {
-        $defaults = array(
+    /**
+     * @param string $field_name
+     * @param array $options
+     */
+    static function checkbox_input($field_name, $options=[]): string {
+        $defaults = [
             'id' => self::input_id($field_name),
             'name' => self::input_name($field_name),
             'type' => 'checkbox',
             'checked' => false,
             'value' => '1',
             'include_hidden_input' => true
-        );
+        ];
         $options = array_merge($defaults, $options);
         if (!$options['checked']) {
             unset($options['checked']);
@@ -135,45 +164,54 @@ class MvcFormTagsHelper extends MvcHelper {
             $options['checked'] = 'checked';
         }
         $attributes_html = self::attributes_html($options, 'input');
-        $html = self::before_input($field_name, $options);
+        $html = self::before_input($options);
         if ($options['include_hidden_input']) {
             // Included to allow for a workaround to the issue of unchecked checkbox fields not being sent by clients
             $html .= '<input type="hidden" name="'.self::esc_attr($options['name']).'" value="0" />';
         }
         $html .= '<input'.$attributes_html.' />';
-        $html .= self::after_input($field_name, $options);
-        return $html;
+        return $html . self::after_input($options);
     }
     
-    static function hidden_input($field_name, $options=array()) {
-        $defaults = array(
+    /**
+     * @param string $field_name
+     * @param array $options
+     */
+    static function hidden_input($field_name, $options=[]): string {
+        $defaults = [
             'id' => self::input_id($field_name),
             'name' => self::input_name($field_name),
             'type' => 'hidden'
-        );
+        ];
         $options = array_merge($defaults, $options);
         $attributes_html = self::attributes_html($options, 'input');
-        $html = '<input'.$attributes_html.' />';
-        return $html;
+        return '<input'.$attributes_html.' />';
     }
     
-    static function select_input($field_name, $options=array()) {
-        $html = self::before_input($field_name, $options);
+    /**
+     * @param string $field_name
+     * @param array $options
+     */
+    static function select_input($field_name, $options=[]): string {
+        $html = self::before_input($options);
         $html .= self::select_tag($field_name, $options);
-        $html .= self::after_input($field_name, $options);
-        return $html;
+        return $html . self::after_input($options);
     }
     
-    static function select_tag($field_name, $options=array()) {
-        $defaults = array(
+    /**
+     * @param string $field_name
+     * @param array $options
+     */
+    static function select_tag($field_name, $options=[]): string {
+        $defaults = [
             'id' => self::input_id($field_name),
             'name' => self::input_name($field_name),
             'empty' => false,
             'value' => null
-        );
+        ];
         
         $options = array_merge($defaults, $options);
-        $options['options'] = empty($options['options']) ? array() : $options['options'];
+        $options['options'] = empty($options['options']) ? [] : $options['options'];
         $attributes_html = self::attributes_html($options, 'select');
         $html = '<select'.$attributes_html.'>';
         if ($options['empty']) {
@@ -188,26 +226,30 @@ class MvcFormTagsHelper extends MvcHelper {
             $selected_attribute = $options['value'] == $key ? ' selected="selected"' : '';
             $html .= '<option value="'.self::esc_attr($key).'"'.$selected_attribute.'>'.$value.'</option>';
         }
-        $html .= '</select>';
-        return $html;
+        return $html . '</select>';
     }
     
-    static function button($text, $options=array()) {
-        $defaults = array(
+    /**
+     * @param array $options
+     */
+    static function button(string $text, $options=[]): string {
+        $defaults = [
             'id' => self::input_id($text),
             'type' => 'button',
             'class' => 'button'
-        );
+        ];
         $options = array_merge($defaults, $options);
         $attributes_html = self::attributes_html($options, 'input');
-        $html = '<button'.$attributes_html.'>'.$text.'</button>';
-        return $html;
+        return '<button'.$attributes_html.'>'.$text.'</button>';
     }
     
-    static private function before_input($field_name, $options) {
-        $defaults = array(
+    /**
+     * @param array $options
+     */
+    static private function before_input($options) : ?string {
+        $defaults = [
             'before' => ''
-        );
+        ];
         $options = array_merge($defaults, $options);
         $html = $options['before'];
         if (!empty($options['label'])) {
@@ -216,19 +258,31 @@ class MvcFormTagsHelper extends MvcHelper {
         return $html;
     }
     
-    static private function after_input($field_name, $options) {
-        $defaults = array(
+    /**
+     * @param array $options
+     */
+    static private function after_input($options) : ?string {
+        $defaults = [
             'after' => ''
-        );
+        ];
         $options = array_merge($defaults, $options);
-        $html = $options['after'];
-        return $html;
+        return $options['after'];
     }
     
+    /**
+     * @param string $field_name
+     *
+     * @return string
+     */
     static private function input_id($field_name) {
         return $field_name;
     }
     
+    /**
+     * @param string $field_name
+     *
+     * @return string
+     */
     static private function input_name($field_name) {
         return $field_name;
     }

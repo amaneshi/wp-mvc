@@ -1,36 +1,38 @@
 <?php
 
-require_once 'mvc_loader.php';
+require_once __DIR__ . '/mvc_loader.php';
 
 class MvcAdminLoader extends MvcLoader {
 
-    public $settings = null;
+    /**
+     * @var array[]
+     *
+     */
+    public $settings;
 
-    public function admin_init() {
+    public function admin_init(): void {
         $this->load_controllers();
         $this->load_settings();
         $this->register_settings();
         $this->dispatch();
     }
 
-    public function dispatch() {
+    public function dispatch(): ?bool {
 
         global $plugin_page;
 
         // If the beginning of $plugin_page isn't 'mvc_', then this isn't a WP MVC-generated page
-        if (substr($plugin_page, 0, 4) != 'mvc_') {
+        if (!str_starts_with((string) $plugin_page, 'mvc_')) {
             return false;
         }
 
-        $plugin_page_split = explode('-', $plugin_page, 2);
+        $plugin_page_split = explode('-', (string) $plugin_page, 2);
 
         $controller = $plugin_page_split[0];
         // Remove 'mvc_' from the beginning of the controller value
         $controller = substr($controller, 4);
 
-        if (!empty($controller)) {
-
-            global $title;
+        if ($controller !== '' && $controller !== '0') {
 
             // Necessary for flash()-related functionality in the admin area only
             if (is_admin() && session_id() == '' && !headers_sent()) {
@@ -39,40 +41,43 @@ class MvcAdminLoader extends MvcLoader {
 
             $action = empty($plugin_page_split[1]) ? 'index' : $plugin_page_split[1];
 
-            $mvc_admin_init_args = array(
+            $mvc_admin_init_args = [
                 'controller' => $controller,
                 'action' => $action
-            );
+            ];
             do_action('mvc_admin_init', $mvc_admin_init_args);
 
             $title = MvcInflector::titleize($controller);
-            if (!empty($action) && $action != 'index') {
+            if ($action !== 'index') {
                 $title = MvcInflector::titleize($action) . ' &lsaquo; ' . $title;
             }
             $title = apply_filters('mvc_admin_title', $title);
+            $GLOBALS['title'] = $title;
 
         }
+        return null;
 
     }
 
-    public function add_menu_pages() {
+    public function add_menu_pages(): void {
 
         global $_registered_pages;
 
-        $sub_pages = array();
+        $sub_pages = [];
         $menu_position = 12;
 
         $menu_position = apply_filters('mvc_menu_position', $menu_position);
 
         foreach (mvc_get_plugins() as $plugin_name) {
 
+            $add_pages = [];
             $admin_pages = MvcConfiguration::get('AdminPages.' . $plugin_name);
             $single_root_page = MvcConfiguration::get('SingleRootMenu.' . $plugin_name);
             $is_nested_menu = is_array($single_root_page);
 
             $root_page_slug = null;
             if ($is_nested_menu) {
-                $add_pages = array();
+                $add_pages = [];
                 $root_page_slug = isset($single_root_page['controller'])
                     ? MvcInflector::underscore(MvcInflector::camelize($plugin_name)) . '_root_page'
                     : 'mvc_' . $this->admin_controller_names[$plugin_name][0];
@@ -82,16 +87,16 @@ class MvcAdminLoader extends MvcLoader {
             foreach ($this->admin_controller_names[$plugin_name] as $controller_name) {
 
                 if (isset($admin_pages[$controller_name])) {
-                    if (empty($admin_pages[$controller_name]) || !$admin_pages[$controller_name]) {
+                    if (empty($admin_pages[$controller_name])) {
                         continue;
                     }
                     $pages = $admin_pages[$controller_name];
                 } else {
-                    $pages = null;
+                    $pages = [];
                 }
 
-                $hide_menu = isset($pages['hide_menu']) ? $pages['hide_menu'] : false;
-                $menu_position_current = isset($pages['position']) ? $pages['position'] : $menu_position;
+                $hide_menu = $pages['hide_menu'] ?? false;
+                $menu_position_current = $pages['position'] ?? $menu_position;
 
                 if (!$hide_menu) {
 
@@ -102,29 +107,29 @@ class MvcAdminLoader extends MvcLoader {
                     $top_level_handle = 'mvc_' . $controller_name;
 
                     $method = $admin_controller_name . '_index';
-                    $this->dispatcher->{$method} = function () use ($admin_controller_name) {
-                        MvcDispatcher::dispatch(array(
+                    $this->dispatcher->{$method} = function () use ($admin_controller_name): void {
+                        MvcDispatcher::dispatch([
                             'controller' => $admin_controller_name,
                             'action' => 'index'
-                        ));
+                        ]);
                     };
-                    $capability = !empty($pages['capability']) ? $pages['capability'] : $this->admin_controller_capabilities[$plugin_name][$controller_name];
-                    $label = __(!empty($pages['label']) ? $pages['label'] : $controller_titleized, $plugin_name);
+                    $capability = empty($pages['capability']) ? $this->admin_controller_capabilities[$plugin_name][$controller_name] : $pages['capability'];
+                    $label = __(empty($pages['label']) ? $controller_titleized : $pages['label'], $plugin_name);
 
                     if ($is_nested_menu) {
 
-                        $sub_pages[] = array(
+                        $sub_pages[] = [
                             'parent_slug' => $root_page_slug,
                             'page_title' => $label,
                             'menu_title' => $label,
                             'capability' => $capability,
                             'menu_slug' => $top_level_handle,
-                            'function' => array($this->dispatcher, $method),
-                            'order' => isset($pages['position']) ? $pages['position'] : 0
-                        );
+                            'function' => [$this->dispatcher, $method],
+                            'order' => $pages['position'] ?? 0
+                        ];
 
                     } else {
-                        $menu_icon = isset($pages['icon']) ? $pages['icon'] : 'dashicons-admin-generic';
+                        $menu_icon = $pages['icon'] ?? 'dashicons-admin-generic';
 
                         /* check if there is a corresponding model with a menu_icon post type argument */
                         try {
@@ -133,7 +138,7 @@ class MvcAdminLoader extends MvcLoader {
                             if (isset($model->wp_post['post_type']['args']['menu_icon'])) {
                                 $menu_icon = $model->wp_post['post_type']['args']['menu_icon'];
                             }
-                        } catch (Exception $e) {
+                        } catch (Exception) {
                             ; //not every controller must have a corresponding model, continue silently
                         }
 
@@ -143,70 +148,68 @@ class MvcAdminLoader extends MvcLoader {
                                 $label,
                                 $capability,
                                 $top_level_handle,
-                                array($this->dispatcher, $method),
+                                [$this->dispatcher, $method],
                                 $menu_icon,
                                 $menu_position_current
                             );
                         } else {
-                            $sub_pages[] = array(
+                            $sub_pages[] = [
                                 'parent_slug' => $pages['parent_slug'],
                                 'page_title' => $label,
                                 'menu_title' => $label,
                                 'capability' => $capability,
                                 'menu_slug' => $top_level_handle,
-                                'function' => array($this->dispatcher, $method),
-                                'order' => isset($pages['order']) ? $pages['order'] : 0
-                            );
+                                'function' => [$this->dispatcher, $method],
+                                'order' => $pages['order'] ?? 0
+                            ];
                         }
                     }
 
-                    $processed_pages = $this->process_admin_pages($controller_name, $pages, $plugin_name);
+                    $processed_pages = $this->process_admin_pages((string) $controller_name, $pages, $plugin_name);
 
                     foreach ($processed_pages as $key => $admin_page) {
 
                         $method = $admin_controller_name . '_' . $admin_page['action'];
 
                         if (!method_exists($this->dispatcher, $method)) {
-                            $this->dispatcher->{$method} = function () use ($admin_controller_name, $admin_page) {
-                                MvcDispatcher::dispatch(array(
+                            $this->dispatcher->{$method} = function () use ($admin_controller_name, $admin_page): void {
+                                MvcDispatcher::dispatch([
                                     'controller' => $admin_controller_name,
                                     'action' => $admin_page['action']
-                                ));
+                                ]);
                             };
                         }
 
                         $page_handle = $top_level_handle . '-' . $key;
-                        $parent_slug = !empty($pages['parent_slug']) ? $pages['parent_slug'] : $top_level_handle;
+                        $parent_slug = empty($pages['parent_slug']) ? $top_level_handle : $pages['parent_slug'];
                         $parent_slug = empty($admin_page['parent_slug']) ? $parent_slug : $admin_page['parent_slug'];
 
                         if ($admin_page['in_menu']) {
                             if ($is_nested_menu) {
-                                $add_pages[] = array(
+                                $add_pages[] = [
                                     'menu_title' => __($admin_page['label'] . ' ' . MvcInflector::singularize($controller_titleized), $plugin_name),
                                     'menu_slug' => $page_handle,
-                                    'function' => array($this->dispatcher, $method),
-                                    'href' => MvcRouter::admin_url(array('controller' => $admin_controller_name, 'action' => $admin_page['action'])),
-                                    'order' => isset($admin_page['order']) ? $admin_page['order'] : 0
-                                );
+                                    'function' => [$this->dispatcher, $method],
+                                    'href' => MvcRouter::admin_url(['controller' => $admin_controller_name, 'action' => $admin_page['action']]),
+                                    'order' => $admin_page['order'] ?? 0
+                                ];
                             } else {
-                                $sub_pages[] = array(
+                                $sub_pages[] = [
                                     'parent_slug' => $parent_slug,
                                     'page_title' => __($admin_page['label'] . ' &lsaquo; ' . $controller_titleized, $plugin_name),
                                     'menu_title' => __($admin_page['label'], $plugin_name),
                                     'capability' => $admin_page['capability'],
                                     'menu_slug' => $page_handle,
-                                    'function' => array($this->dispatcher, $method),
-                                    'order' => isset($admin_page['order']) ? $admin_page['order'] : 0
-                                );
+                                    'function' => [$this->dispatcher, $method],
+                                    'order' => $admin_page['order'] ?? 0
+                                ];
                             }
                         } else {
                             // It looks like there isn't a more native way of creating an admin page without
                             // having it show up in the menu, but if there is, it should be implemented here.
                             // To do: set up capability handling and page title handling for these pages that aren't in the menu
                             $hookname = get_plugin_page_hookname($page_handle, '');
-                            if (!empty($hookname)) {
-                                add_action($hookname, array($this->dispatcher, $method));
-                            }
+                            add_action($hookname, [$this->dispatcher, $method]);
                             $_registered_pages[$hookname] = true;
                         }
                     }
@@ -222,7 +225,7 @@ class MvcAdminLoader extends MvcLoader {
             //add sub pages
             foreach ($sub_pages as $page) {
                 add_submenu_page(
-                    $page['parent_slug'],
+                    $page['parent_slug'] ?? '',
                     $page['page_title'],
                     $page['menu_title'],
                     $page['capability'],
@@ -231,7 +234,7 @@ class MvcAdminLoader extends MvcLoader {
                 );
             }
 
-            if (!empty($add_pages)) {
+            if ($add_pages !== []) {
                 //sort add pages
                 $add_pages_order = array_column($add_pages, 'order');
                 $add_pages_title = array_column($add_pages, 'menu_title');
@@ -239,59 +242,78 @@ class MvcAdminLoader extends MvcLoader {
 
                 foreach ($add_pages as $add_page) {
                     $hookname = get_plugin_page_hookname($add_page['menu_slug'], '');
-                    if (!empty($hookname)) {
-                        add_action($hookname, $add_page['function']);
-                    }
+                    add_action($hookname, $add_page['function']);
                     $_registered_pages[$hookname] = true;
                 }
 
-                add_action('wp_before_admin_bar_render', function () use ($add_pages, $plugin_name) {
+                add_action('wp_before_admin_bar_render', function () use ($add_pages, $plugin_name): void {
                     $this->add_admin_bar_pages($add_pages, $plugin_name);
                 });
             }
-            add_filter('parent_file', function ($parent_file) use ($root_page_slug) {
-                return $this->set_active_parent_menu_slug($parent_file, $root_page_slug);
-            });
-            add_filter('submenu_file', function ($submenu_file) use ($root_page_slug) {
-                return $this->set_active_submenu_slug($submenu_file, $root_page_slug);
-            });
+            add_filter('parent_file', /**
+             * @param string $parent_file
+             */
+            fn($parent_file) => $this->set_active_parent_menu_slug($parent_file, $root_page_slug));
+            add_filter('submenu_file', /**
+             * @param string $submenu_file
+             */
+            fn($submenu_file) => $this->set_active_submenu_slug($submenu_file, $root_page_slug));
         }
     }
 
+    /**
+     * @param null|string $root_page_slug
+     * @param string $parent_file
+     *
+     * @return string
+     */
     public function set_active_parent_menu_slug($parent_file, $root_page_slug) {
         global $plugin_page, $pagenow;
-        if ($pagenow === 'admin.php' and substr($plugin_page, 0, 4) === 'mvc_')
-            $parent_file = $root_page_slug ?: explode('-', $plugin_page, 2)[0];
+        if ($pagenow === 'admin.php' && str_starts_with((string) $plugin_page, 'mvc_')) {
+            $parent_file = $root_page_slug ?: explode('-', (string) $plugin_page, 2)[0];
+        }
 
         return $parent_file;
     }
 
+    /**
+     * @param null|string $root_page_slug
+     * @param string $submenu_file
+     *
+     * @return null|string
+     */
     public function set_active_submenu_slug($submenu_file, $root_page_slug) {
         global $plugin_page, $pagenow;
-        if ($pagenow === 'admin.php' and substr($plugin_page, 0, 4) === 'mvc_')
-            $submenu_file = $root_page_slug ? explode('-', $plugin_page, 2)[0] : null;
+        if ($pagenow === 'admin.php' && str_starts_with((string) $plugin_page, 'mvc_')) {
+            $submenu_file = $root_page_slug ? explode('-', (string) $plugin_page, 2)[0] : null;
+        }
 
         return $submenu_file;
     }
 
-    public function add_root_menu_page($root_page, $plugin_name, $root_page_slug) {
+    /**
+     * @param string $root_page_slug
+     * @param string $plugin_name
+     * @param array $root_page
+     */
+    public function add_root_menu_page($root_page, $plugin_name, $root_page_slug): void {
 
-        $default_root_page = array(
-            'page_title' => null,
+        $default_root_page = [
+            'page_title' => MvcInflector::titleize($plugin_name) . ' Plugin',
             'menu_title' => MvcInflector::titleize($plugin_name) . ' Plugin',
             'capability' => 'administrator',
             'menu_slug' => $root_page_slug,
             'controller' => null,
             'action' => null,
             'icon_url' => 'dashicons-admin-generic',
-            'position' => '12'
-        );
+            'position' => 12
+        ];
 
         $root_page = array_merge($default_root_page, $root_page);
         $controller = $root_page['controller'];
         $action = $root_page['action'] ?: 'index';
 
-        $root_page['function'] = array($this->dispatcher, 'admin_' . ($controller ?: substr($root_page_slug, 4)) . '_' . $action);
+        $root_page['function'] = [$this->dispatcher, 'admin_' . ($controller ?: substr($root_page_slug, 4)) . '_' . $action];
 
         add_menu_page(
             $root_page['page_title'],
@@ -304,65 +326,74 @@ class MvcAdminLoader extends MvcLoader {
         );
     }
 
-    public function add_admin_bar_pages($add_pages, $plugin_name) {
+    /**
+     * @param array $add_pages
+     * @param string $plugin_name
+     */
+    public function add_admin_bar_pages($add_pages, $plugin_name): void {
 
         global $wp_admin_bar;
         $root_id = MvcInflector::underscore(MvcInflector::camelize($plugin_name));
         $root_title = __(MvcInflector::titleize($plugin_name), $plugin_name);
-        $wp_admin_bar->add_menu(array(
+        $wp_admin_bar->add_menu([
             'id' => $root_id,
             'title' => '<span class="ab-icon dashicons dashicons-sos"></span>' . $root_title,
-        ));
+        ]);
         foreach ($add_pages as $add_page) {
 
-            $wp_admin_bar->add_node(array(
+            $wp_admin_bar->add_node([
                 'parent' => $root_id,
                 'id' => $add_page['menu_slug'],
                 'title' => $add_page['menu_title'],
                 'href' => $add_page['href'],
-            ));
+            ]);
         }
     }
 
-    protected function process_admin_pages($controller_name, $pages, $plugin_name) {
+    /**
+     * @return mixed[][]
+     * @param string $plugin_name
+     * @param array $pages
+     */
+    protected function process_admin_pages(string $controller_name, $pages, $plugin_name): array {
 
         $titleized = MvcInflector::titleize($controller_name);
 
-        $default_pages = array(
-            'add' => array(
+        $default_pages = [
+            'add' => [
                 'label' => __('Add New', 'wpmvc')
-            ),
-            'delete' => array(
+            ],
+            'delete' => [
                 'label' => __('Delete', 'wpmvc') . ' ' . $titleized,
                 'in_menu' => false
-            ),
-            'edit' => array(
+            ],
+            'edit' => [
                 'label' => __('Edit', 'wpmvc') . ' ' . $titleized,
                 'in_menu' => false
-            )
-        );
+            ]
+        ];
 
         if (!$pages) {
             $pages = $default_pages;
         }
 
-        $processed_pages = array();
+        $processed_pages = [];
 
         foreach ($pages as $key => $value) {
             if (is_int($key)) {
                 $key = $value;
-                $value = array();
+                $value = [];
             }
             if (!is_array($value)) {
                 continue;
             }
             $capability = $this->admin_controller_capabilities[$plugin_name][$controller_name];
-            $defaults = array(
+            $defaults = [
                 'action' => $key,
                 'in_menu' => true,
                 'label' => MvcInflector::titleize($key),
                 'capability' => $capability
-            );
+            ];
             if (isset($default_pages[$key])) {
                 $value = array_merge($default_pages[$key], $value);
             }
@@ -373,59 +404,55 @@ class MvcAdminLoader extends MvcLoader {
         return $processed_pages;
     }
 
-    public function init_settings() {
-        $this->settings = array();
-        if (!empty($this->settings_names) && empty($this->settings)) {
-            foreach ($this->settings_names as $settings_name) {
-                $instance = MvcSettingsRegistry::get_settings($settings_name);
-                $this->settings[$settings_name] = array(
-                    'settings' => $instance->settings
-                );
-            }
+    public function init_settings(): void {
+        $this->settings = [];
+        foreach ($this->settings_names as $settings_name) {
+            $instance = MvcSettingsRegistry::require_settings($settings_name);
+            $this->settings[$settings_name] = [
+                'settings' => $instance->settings
+            ];
         }
     }
 
-    public function register_settings() {
+    public function register_settings(): void {
         $this->init_settings();
         foreach ($this->settings as $settings_name => $settings) {
-            $instance = MvcSettingsRegistry::get_settings($settings_name);
+            $instance = MvcSettingsRegistry::require_settings($settings_name);
             $title = $instance->title;
             $settings_key = $instance->key;
             $section_key = $settings_key . '_main';
-            add_settings_section($section_key, '', array($instance, 'description'), $settings_key);
-            register_setting($settings_key, $settings_key, array($instance, 'validate_fields'));
+            add_settings_section($section_key, '', $instance->description(...), $settings_key);
+            register_setting($settings_key, $settings_key, ['sanitize_callback' => $instance->validate_fields(...)]);
             foreach ($instance->settings as $setting_key => $setting) {
-                add_settings_field($setting_key, $setting['label'], array($instance, 'display_field_' . $setting_key), $settings_key, $section_key);
+                add_settings_field($setting_key, $setting['label'], [$instance, 'display_field_' . $setting_key], $settings_key, $section_key);
             }
         }
     }
 
-    public function add_settings_pages() {
+    public function add_settings_pages(): void {
         $this->init_settings();
         foreach ($this->settings as $settings_name => $settings) {
             $title = MvcInflector::titleize($settings_name);
             $title = str_replace(' Settings', '', $title);
             $title = __($title, $this->plugin_name);
-            $instance = MvcSettingsRegistry::get_settings($settings_name);
-            add_options_page($title, $title, 'manage_options', $instance->key, array($instance, 'page'));
+            $instance = MvcSettingsRegistry::require_settings($settings_name);
+            add_options_page($title, $title, 'manage_options', $instance->key, $instance->page(...));
         }
     }
 
-    public function add_admin_ajax_routes() {
+    public function add_admin_ajax_routes(): void {
         $routes = MvcRouter::get_admin_ajax_routes();
-        if (!empty($routes)) {
-            foreach ($routes as $route) {
-                $route['is_admin_ajax'] = true;
-                $method = 'admin_ajax_' . $route['wp_action'];
-                $this->dispatcher->{$method} = function () use ($route) {
-                    MvcDispatcher::dispatch(array(
-                        'controller' => $route['controller'],
-                        'action' => $route['action']
-                    ));
-                    die();
-                };
-                add_action('wp_ajax_' . $route['wp_action'], array($this->dispatcher, $method));
-            }
+        foreach ($routes as $route) {
+            $route['is_admin_ajax'] = true;
+            $method = 'admin_ajax_' . $route['wp_action'];
+            $this->dispatcher->{$method} = function () use ($route): void {
+                MvcDispatcher::dispatch([
+                    'controller' => $route['controller'],
+                    'action' => $route['action']
+                ]);
+                die();
+            };
+            add_action('wp_ajax_' . $route['wp_action'], [$this->dispatcher, $method]);
         }
 
     }

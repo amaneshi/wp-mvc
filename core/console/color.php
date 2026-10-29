@@ -32,8 +32,8 @@
  */
 
 
-$GLOBALS['_CONSOLE_COLOR_CODES'] = array (
-    'color' => array(
+$GLOBALS['_CONSOLE_COLOR_CODES'] =  [
+    'color' => [
             'black'  => 30,
             'red'    => 31,
             'green'  => 32,
@@ -43,8 +43,8 @@ $GLOBALS['_CONSOLE_COLOR_CODES'] = array (
             'cyan'   => 36,
             'grey'   => 37,
             'yellow' => 33
-    ),
-    'style' => array(
+    ],
+    'style' => [
             'normal'     => 0,
             'bold'       => 1,
             'light'      => 1,
@@ -54,8 +54,8 @@ $GLOBALS['_CONSOLE_COLOR_CODES'] = array (
             'inverse'    => 6,
             'hidden'     => 8,
             'concealed'  => 8
-    ),
-    'background' => array(
+    ],
+    'background' => [
             'black'  => 40,
             'red'    => 41,
             'green'  => 42,
@@ -65,8 +65,8 @@ $GLOBALS['_CONSOLE_COLOR_CODES'] = array (
             'purple' => 45,
             'cyan'   => 46,
             'grey'   => 47
-    )
-);
+    ]
+];
 
     
 /**
@@ -87,23 +87,22 @@ class Console_Color
 
     /**
      * Returns an ANSI-Controlcode
-     * 
+     *
      * Takes 1 to 3 Arguments: either 1 to 3 strings containing the name of the
      * FG Color, style and BG color, or one array with the indices color, style
      * or background.
      *
      * @param mixed  $color      Optional.
      *                           Either a string with the name of the foreground
-     *                           color, or an array with the indices 'color', 
+     *                           color, or an array with the indices 'color',
      *                           'style', 'background' and corresponding names as
      *                           values.
      * @param string $style      Optional name of the style
      * @param string $background Optional name of the background color
      *
      * @access public
-     * @return string
      */
-    public static function color($color = null, $style = null, $background = null) // {{{
+    public static function color($color = null, $style = null, $background = null): string // {{{
     {
         $colors = &$GLOBALS['_CONSOLE_COLOR_CODES'];
         if (is_array($color)) {
@@ -116,7 +115,7 @@ class Console_Color
             return "\033[0m";
         }
 
-        $code = array();
+        $code = [];
         if (isset($color)) {
             $code[] = $colors['color'][$color];
         }
@@ -129,23 +128,21 @@ class Console_Color
             $code[] = $colors['background'][$background];
         }
 
-        if (empty($code)) {
+        if ($code === []) {
             $code[] = 0;
         }
 
         $code = implode(';', $code);
         return "\033[{$code}m";
     } // }}}
-
     /**
      * Returns a FG color controlcode
      *
      * @param string $name Name of controlcode
      *
      * @access public
-     * @return string
      */
-    public static function fgcolor($name)
+    public static function fgcolor($name): string
     {
         $colors = &$GLOBALS['_CONSOLE_COLOR_CODES'];
         return "\033[".$colors['color'][$name].'m';
@@ -157,9 +154,8 @@ class Console_Color
      * @param string $name Name of controlcode
      *
      * @access public
-     * @return string
      */
-    public static function style($name)
+    public static function style($name): string
     {
         $colors = &$GLOBALS['_CONSOLE_COLOR_CODES'];
         return "\033[".$colors['style'][$name].'m';
@@ -171,9 +167,8 @@ class Console_Color
      * @param string $name Name of controlcode
      *
      * @access public
-     * @return string
      */
-    public static function bgcolor($name)
+    public static function bgcolor($name): string
     {
         $colors = &$GLOBALS['_CONSOLE_COLOR_CODES'];
         return "\033[".$colors['background'][$name].'m';
@@ -214,47 +209,47 @@ class Console_Color
      * @access public
      * @return string
      */
-    public static function convert($string, $colored = true)
+    public static function convert($string, $colored = true): string|array|null
     {
-        static $conversions = array ( // static so the array doesn't get built
+        static $conversions =  [ // static so the array doesn't get built
                                       // everytime
             // %y - yellow, and so on... {{{
-            '%y' => array('color' => 'yellow'),
-            '%g' => array('color' => 'green' ),
-            '%b' => array('color' => 'blue'  ),
-            '%r' => array('color' => 'red'   ),
-            '%p' => array('color' => 'purple'),
-            '%m' => array('color' => 'purple'),
-            '%c' => array('color' => 'cyan'  ),
-            '%w' => array('color' => 'grey'  ),
-            '%k' => array('color' => 'black' ),
-            '%n' => array('color' => 'reset' ),
-            '%Y' => array('color' => 'yellow',  'style' => 'light'),
-            '%G' => array('color' => 'green',   'style' => 'light'),
-            '%B' => array('color' => 'blue',    'style' => 'light'),
-            '%R' => array('color' => 'red',     'style' => 'light'),
-            '%P' => array('color' => 'purple',  'style' => 'light'),
-            '%M' => array('color' => 'purple',  'style' => 'light'),
-            '%C' => array('color' => 'cyan',    'style' => 'light'),
-            '%W' => array('color' => 'grey',    'style' => 'light'),
-            '%K' => array('color' => 'black',   'style' => 'light'),
-            '%N' => array('color' => 'reset',   'style' => 'light'),
-            '%3' => array('background' => 'yellow'),
-            '%2' => array('background' => 'green' ),
-            '%4' => array('background' => 'blue'  ),
-            '%1' => array('background' => 'red'   ),
-            '%5' => array('background' => 'purple'),
-            '%6' => array('background' => 'cyan'  ),
-            '%7' => array('background' => 'grey'  ),
-            '%0' => array('background' => 'black' ),
+            '%y' => ['color' => 'yellow'],
+            '%g' => ['color' => 'green' ],
+            '%b' => ['color' => 'blue'  ],
+            '%r' => ['color' => 'red'   ],
+            '%p' => ['color' => 'purple'],
+            '%m' => ['color' => 'purple'],
+            '%c' => ['color' => 'cyan'  ],
+            '%w' => ['color' => 'grey'  ],
+            '%k' => ['color' => 'black' ],
+            '%n' => ['color' => 'reset' ],
+            '%Y' => ['color' => 'yellow',  'style' => 'light'],
+            '%G' => ['color' => 'green',   'style' => 'light'],
+            '%B' => ['color' => 'blue',    'style' => 'light'],
+            '%R' => ['color' => 'red',     'style' => 'light'],
+            '%P' => ['color' => 'purple',  'style' => 'light'],
+            '%M' => ['color' => 'purple',  'style' => 'light'],
+            '%C' => ['color' => 'cyan',    'style' => 'light'],
+            '%W' => ['color' => 'grey',    'style' => 'light'],
+            '%K' => ['color' => 'black',   'style' => 'light'],
+            '%N' => ['color' => 'reset',   'style' => 'light'],
+            '%3' => ['background' => 'yellow'],
+            '%2' => ['background' => 'green' ],
+            '%4' => ['background' => 'blue'  ],
+            '%1' => ['background' => 'red'   ],
+            '%5' => ['background' => 'purple'],
+            '%6' => ['background' => 'cyan'  ],
+            '%7' => ['background' => 'grey'  ],
+            '%0' => ['background' => 'black' ],
             // Don't use this, I can't stand flashing text
-            '%F' => array('style' => 'blink'),
-            '%U' => array('style' => 'underline'),
-            '%8' => array('style' => 'inverse'),
-            '%9' => array('style' => 'bold'),
-            '%_' => array('style' => 'bold')
+            '%F' => ['style' => 'blink'],
+            '%U' => ['style' => 'underline'],
+            '%8' => ['style' => 'inverse'],
+            '%9' => ['style' => 'bold'],
+            '%_' => ['style' => 'bold']
             // }}}
-        );
+        ];
 
         if ($colored) {
             $string = str_replace('%%', '% ', $string);
@@ -273,13 +268,12 @@ class Console_Color
 
     /**
      * Escapes % so they don't get interpreted as color codes
-     * 
+     *
      * @param string $string String to escape
      *
      * @access public
-     * @return string
      */
-    public static function escape($string) 
+    public static function escape($string): string
     {
         return str_replace('%', '%%', $string);
     }
@@ -292,7 +286,7 @@ class Console_Color
      * @acess public
      * @return string
      */
-    public static function strip($string) 
+    public static function strip($string): ?string
     {
         return preg_replace('/\033\[[\d;]+m/', '', $string);
     }

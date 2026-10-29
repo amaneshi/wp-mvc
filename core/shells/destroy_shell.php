@@ -6,32 +6,29 @@
 class DestroyShell extends MvcShell {
 
     /**
-     * Deletes controller source files 
+     * Deletes controller source files
      * wpmvc destroy <plugin> <resource>
-     * @param type $args 
      */
-    public function controllers($args) {
-        list($plugin, $name) = $this->get_plugin_model_args($args);
+    public function controllers(array $args): void {
+        [$plugin, $name] = $this->get_plugin_model_args($args);
         $this->destroy_controllers($plugin, $name);
     }
 
     /**
      * Deletes model source files
      * wpmvc destroy <plugin> <resource>
-     * @param type $args 
      */
-    public function model($args) {
-        list($plugin, $name) = $this->get_plugin_model_args($args);
+    public function model(array $args): void {
+        [$plugin, $name] = $this->get_plugin_model_args($args);
         $this->destroy_model($plugin, $name);
     }
 
     /**
      * Deletes model, controller, and view files for a resource
      * wpmvc destroy <plugin> <resource>
-     * @param type $args 
      */
-    public function scaffold($args) {
-        list($plugin, $name) = $this->get_plugin_model_args($args);
+    public function scaffold(array $args): void {
+        [$plugin, $name] = $this->get_plugin_model_args($args);
         $this->destroy_controllers($plugin, $name);
         $this->destroy_model($plugin, $name);
         $this->destroy_views($plugin, $name);
@@ -40,10 +37,9 @@ class DestroyShell extends MvcShell {
     /**
      * Deletes view source files for a resource
      * wpmvc destroy views <plugin> <resource>
-     * @param type $args 
      */
-    public function views($args) {
-        list($plugin, $name) = $this->get_plugin_model_args($args);
+    public function views(array $args): void {
+        [$plugin, $name] = $this->get_plugin_model_args($args);
         $this->destroy_views($plugin, $name);
     }
     
@@ -51,12 +47,12 @@ class DestroyShell extends MvcShell {
      * Delete a generated widget 
      * @param mixed $args 
      */
-    public function widget($args) {
-        list($plugin, $name) = $this->get_plugin_model_args($args);
+    public function widget(array $args): void {
+        [$plugin, $name] = $this->get_plugin_model_args($args);
         $this->destroy_widget($plugin, $name);   
     }
     
-    private function destroy_controllers($plugin, $name) {
+    private function destroy_controllers(string|int|null $plugin, string|int|null $name): void {
         $plugin_app_path = $this->get_plugin_app_path($plugin);
         $file = new MvcFile();
         $name_tableized = MvcInflector::tableize($name);
@@ -65,7 +61,7 @@ class DestroyShell extends MvcShell {
         $file->delete($target_directory.'admin/admin_'.$name_tableized.'_controller.php');
     }
     
-    private function destroy_model($plugin, $name) {
+    private function destroy_model(string|int|null $plugin, string|int|null $name): void {
         $plugin_app_path = $this->get_plugin_app_path($plugin);
         $file = new MvcFile();
         $name_underscore = MvcInflector::underscore($name);
@@ -73,7 +69,7 @@ class DestroyShell extends MvcShell {
         $file->delete($target_path);
     }
     
-    private function destroy_views($plugin, $name) {
+    private function destroy_views(string|int|null $plugin, string|int|null $name): void {
         $plugin_app_path = $this->get_plugin_app_path($plugin);
         $name_tableized = MvcInflector::tableize($name);
         $public_directory = $plugin_app_path.'views/'.$name_tableized;
@@ -83,7 +79,7 @@ class DestroyShell extends MvcShell {
         $directory->delete($admin_directory);
     }
     
-    private function destroy_widget($plugin, $name) {
+    private function destroy_widget(string|int|null $plugin, string|int|null $name): void {
         $plugin_app_path = $this->get_plugin_app_path($plugin);
         $file = new MvcFile();
         $name_underscore = MvcInflector::underscore($name);
@@ -91,7 +87,7 @@ class DestroyShell extends MvcShell {
         $file->delete($target_path);
     }
     
-    private function get_plugin_model_args($args) {
+    private function get_plugin_model_args(array $args): array {
         if (empty($args[0]) || empty($args[1])) {
             MvcError::fatal('Please specify a plugin and name for the model.');
         }
@@ -99,17 +95,15 @@ class DestroyShell extends MvcShell {
         return $args;
     }
     
-    private function get_plugin_path($plugin_name) {
+    private function get_plugin_path(string|int|null $plugin_name): string {
         $plugin_underscored = MvcInflector::underscore($plugin_name);
         $plugin_hyphenized = str_replace('_', '-', $plugin_underscored);
-        $plugin_path = WP_PLUGIN_DIR.'/'.$plugin_hyphenized.'/';
-        return $plugin_path;
+        return WP_PLUGIN_DIR.'/'.$plugin_hyphenized.'/';
     }
     
-    private function get_plugin_app_path($plugin_name) {
+    private function get_plugin_app_path(string|int|null $plugin_name): string {
         $plugin_path = $this->get_plugin_path($plugin_name);
-        $plugin_app_path = $plugin_path.'app/';
-        return $plugin_app_path;
+        return $plugin_path.'app/';
     }
 
 }

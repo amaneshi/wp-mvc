@@ -2,14 +2,20 @@
 
 class MvcRouter {
     
-    public $routes = array();
+    /**
+     * @var array
+     */
+    public $routes = [];
 
-    static function public_url($options=array()) {
+    /**
+     * @param array $options
+     */
+    static function public_url($options=[]): string {
         $options = apply_filters('mvc_before_public_url', $options);
-        $defaults = array(
+        $defaults = [
             'action' => 'index',
             'controller' => null
-        );
+        ];
         $options = array_merge($defaults, $options);
         $routes = self::get_public_routes();
         $controller = $options['controller'];
@@ -19,17 +25,18 @@ class MvcRouter {
             if (!empty($options['object']->__model_name) && !$controller) {
                 $model_name = $options['object']->__model_name;
                 $controller = MvcInflector::tableize($model_name);
-            } else if ($controller) {
+            } elseif ($controller) {
                 $model_name = MvcInflector::camelize(MvcInflector::singularize($controller));
             } else {
                 MvcError::warning('Incomplete arguments for MvcRouter::public_url().');
+                return home_url('/');
             }
-            $model = MvcModelRegistry::get_model($model_name);
+            $model = MvcModelRegistry::get_model((string) $model_name);
             if (!empty($model) && method_exists($model, 'to_url')) {
                 $route_prefix = self::get_route_prefix();
-                $url = home_url((string)$route_prefix . '/');
+                $url = home_url($route_prefix . '/');
 
-                $method = new ReflectionMethod(get_class($model), 'to_url');
+                $method = new ReflectionMethod($model::class, 'to_url');
                 $parameter_count = $method->getNumberOfParameters();
 
                 if ($parameter_count == 2) {
@@ -46,14 +53,12 @@ class MvcRouter {
         foreach ($routes as $route) {
             $route_path = $route[0];
             $route_defaults = $route[1];
-            if (!empty($route_defaults['controller']) && $route_defaults['controller'] == $controller) {
-                if (!empty($route_defaults['action']) && $route_defaults['action'] == $action) {
-                    $matched_route = $route;
-                }
+            if (!empty($route_defaults['controller']) && $route_defaults['controller'] == $controller && (!empty($route_defaults['action']) && $route_defaults['action'] == $action)) {
+                $matched_route = $route;
             }
         }
         $route_prefix = self::get_route_prefix();
-        $url = home_url((string)$route_prefix . '/');
+        $url = home_url($route_prefix . '/');
         if ($matched_route) {
             $path_pattern = $matched_route[0];
             preg_match_all('/{:([\w]+).*?}/', $path_pattern, $matches, PREG_SET_ORDER);
@@ -63,20 +68,20 @@ class MvcRouter {
                 $option_key = $match[1];
                 if (isset($options[$option_key])) {
                     $value = $options[$option_key];
-                    $path = preg_replace('/'.preg_quote($pattern).'/', $value, $path, 1);
-                } else if (isset($options['object']) && is_object($options['object'])) {
+                    $path = preg_replace('/'.preg_quote($pattern).'/', $value, (string) $path, 1);
+                } elseif (isset($options['object']) && is_object($options['object'])) {
                     if (isset($options['object']->{$option_key})) {
                         $value = $options['object']->{$option_key};
-                        $path = preg_replace('/'.preg_quote($pattern).'/', $value, $path, 1);
-                        $path = rtrim($path, '.*?');
+                        $path = preg_replace('/'.preg_quote($pattern).'/', $value, (string) $path, 1);
+                        $path = rtrim((string) $path, '.*?');
                     }
                 }
             }
-            $path = rtrim($path, '/').'/';
+            $path = rtrim((string) $path, '/').'/';
             $url .= $path;
         } else {
             $url .= $controller.'/';
-            if (!empty($action) && !in_array($action, array('show', 'index'))) {
+            if (!empty($action) && !in_array($action, ['show', 'index'])) {
                 $url .= $action.'/';
             }
             if (!empty($options['id'])) {
@@ -86,7 +91,7 @@ class MvcRouter {
         return $url;
     }
 
-    static function admin_url($options=array()) {
+    static function admin_url(array $options=[]): string {
         if (!empty($options['object']) && is_object($options['object'])) {
             if (empty($options['id']) && !empty($options['object']->__id)) {
                 $options['id'] = $options['object']->__id;
@@ -97,16 +102,19 @@ class MvcRouter {
         }
         $url = get_admin_url().'admin.php';
         $params = http_build_query(self::admin_url_params($options));
-        if ($params) {
+        if ($params !== '' && $params !== '0') {
             $url .= '?'.$params;
         }
         return $url;
     }
     
-    static function admin_url_params($options=array()) {
-        $params = array();
+    /**
+     * @return mixed[]
+     */
+    static function admin_url_params(array $options=[]): array {
+        $params = [];
         if (!empty($options['controller'])) {
-            $controller = preg_replace('/^admin_/', '', $options['controller']);
+            $controller = preg_replace('/^admin_/', '', (string) $options['controller']);
             $params['page'] = 'mvc_'.$controller;
             if (!empty($options['action']) && $options['action'] != 'index') {
                 $params['page'] .= '-'.$options['action'];
@@ -118,9 +126,12 @@ class MvcRouter {
         return $params;
     }
     
-    static function admin_page_param($options=array()) {
+    /**
+     * @param array|string $options
+     */
+    static function admin_page_param($options=[]): string|false {
         if (is_string($options)) {
-            $options = array('model' => $options);
+            $options = ['model' => $options];
         }
         if (!empty($options['model'])) {
             return 'mvc_'.MvcInflector::tableize($options['model']);
@@ -128,48 +139,70 @@ class MvcRouter {
         return false;
     }
 
-    static function public_connect( $route, $defaults = array() ) {
+    /**
+     * @param string $route
+     * @param string[] $defaults
+     *
+     */
+    static function public_connect( $route, $defaults = [] ): void {
+        /** @psalm-suppress UnsupportedReferenceUsage Preserved registry aliasing; covered by reference-contract regression tests. */
         $_this =& MvcRouter::get_instance();
         $_this->maybe_add_route_prefix($route);
         $_this->add_public_route($route, $defaults);
     }
     
-    static function admin_ajax_connect($route) {
+    /**
+     * @param string[] $route
+     *
+     */
+    static function admin_ajax_connect(array $route): void {
+        /** @psalm-suppress UnsupportedReferenceUsage Preserved registry aliasing; covered by reference-contract regression tests. */
         $_this =& MvcRouter::get_instance();
         $_this->add_admin_ajax_route($route);
     }
 
-    static function &get_instance() {
-        static $instance = array();
+    static function &get_instance() : MvcRouter {
+        static $instance = [];
         if (!$instance) {
             $mvc_router = new MvcRouter();
             $instance[0] =& $mvc_router;
-            $instance[0]->routes = array(
-                'public' => array(),
-                'admin_ajax' => array()
-            );
+            $instance[0]->routes = [
+                'public' => [],
+                'admin_ajax' => []
+            ];
         }
         return $instance[0];
     }
 
+    /** @return array<array{0: string, 1: array}> */
     static function &get_public_routes() {
+        /** @psalm-suppress UnsupportedReferenceUsage Preserved registry aliasing; covered by reference-contract regression tests. */
         $_this =& self::get_instance();
+        /** @psalm-suppress UnsupportedPropertyReferenceUsage Preserved registry aliasing; covered by reference-contract regression tests. */
         $return =& $_this->routes['public'];
         return $return;
     }
 
-    static function &get_admin_ajax_routes() {
+    static function &get_admin_ajax_routes() : array {
+        /** @psalm-suppress UnsupportedReferenceUsage Preserved registry aliasing; covered by reference-contract regression tests. */
         $_this =& self::get_instance();
+        /** @psalm-suppress UnsupportedPropertyReferenceUsage Preserved registry aliasing; covered by reference-contract regression tests. */
         $return =& $_this->routes['admin_ajax'];
         return $return;
     }
     
-    static function add_public_route($route, $defaults) {
+    /**
+     * @param string $route
+     * @param array $defaults
+     */
+    static function add_public_route($route, $defaults): void {
+        /** @psalm-suppress UnsupportedReferenceUsage Preserved registry aliasing; covered by reference-contract regression tests. */
         $_this =& self::get_instance();
-        $_this->routes['public'][] = array($route, $defaults);
+        $_this->routes['public'][] = [$route, $defaults];
     }
     
-    static function add_admin_ajax_route($route) {
+    static function add_admin_ajax_route(array $route): void {
+        /** @psalm-suppress UnsupportedReferenceUsage Preserved registry aliasing; covered by reference-contract regression tests. */
         $_this =& self::get_instance();
         if (empty($route['wp_action'])) {
             $route['wp_action'] = $route['controller'].'_'.$route['action'];
@@ -177,14 +210,17 @@ class MvcRouter {
         $_this->routes['admin_ajax'][] = $route;
     }
 
-    static function maybe_add_route_prefix(&$route){
+    /**
+     * @param string $route
+     */
+    static function maybe_add_route_prefix(&$route): void{
         $route_prefix = MvcConfiguration::get( 'CustomRoutePrefix' );
         if ( ! empty( $route_prefix ) ) {
             $route = $route_prefix . '/' . $route;
         }
     }
 
-    static function get_route_prefix(){
+    static function get_route_prefix(): mixed {
         return MvcConfiguration::get( 'CustomRoutePrefix' );
     }
 

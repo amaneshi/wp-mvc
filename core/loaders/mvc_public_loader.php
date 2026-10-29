@@ -1,18 +1,19 @@
 <?php
 
-require_once 'mvc_loader.php';
+require_once __DIR__ . '/mvc_loader.php';
 
 class MvcPublicLoader extends MvcLoader {
 
-    public function flush_rewrite_rules($rules = array()) {
+    /**
+     * @param array $rules
+     */
+    public function flush_rewrite_rules($rules = []): void {
         global $wp_rewrite;
-        if (is_object($wp_rewrite)) {
-            $wp_rewrite->flush_rules(false);
-        }
+        $wp_rewrite->flush_rules(false);
     }
 
-    public function load_rewrite_rules() {
-        if (empty($this->public_controller_names)) {
+    public function load_rewrite_rules(): void {
+        if ($this->public_controller_names === []) {
             $this->init();
         }
         $rules = $this->get_new_rules();
@@ -21,24 +22,29 @@ class MvcPublicLoader extends MvcLoader {
         }
     }
 
-    public function add_rewrite_rules($rules = array()) {
+    /**
+     * @param array $rules
+     */
+    public function add_rewrite_rules($rules = []) : array {
         $new_rules = $this->get_new_rules();
         $rules = array_merge($new_rules, $rules);
-        $rules = apply_filters('mvc_public_rewrite_rules', $rules);
-        return $rules;
+        return apply_filters('mvc_public_rewrite_rules', $rules);
     }
 
-    public function get_new_rules() {
+    /**
+     * @return mixed[]
+     */
+    public function get_new_rules(): array {
         global $wp_rewrite;
 
-        $new_rules = array();
+        $new_rules = [];
 
         $routes = MvcRouter::get_public_routes();
 
         // Use default routes if none have been defined
         if (empty($routes)) {
-            MvcRouter::public_connect('{:controller}', array('action' => 'index'));
-            MvcRouter::public_connect('{:controller}/{:id:[\d]+}', array('action' => 'show'));
+            MvcRouter::public_connect('{:controller}', ['action' => 'index']);
+            MvcRouter::public_connect('{:controller}/{:id:[\d]+}', ['action' => 'show']);
             MvcRouter::public_connect('{:controller}/{:action}/{:id:[\d]+}');
             $routes = MvcRouter::get_public_routes();
         }
@@ -48,12 +54,12 @@ class MvcPublicLoader extends MvcLoader {
             $route_path = $route[0];
             $route_defaults = $route[1];
 
-            if (strpos($route_path, '{:controller}') !== false) {
+            if (str_contains($route_path, '{:controller}')) {
                 foreach ($this->public_controller_names as $controller) {
                     $route_rules = $this->get_rewrite_rules($route_path, $route_defaults, $controller);
                     $new_rules = array_merge($route_rules, $new_rules);
                 }
-            } else if (!empty($route_defaults['controller'])) {
+            } elseif (!empty($route_defaults['controller'])) {
                 $route_rules = $this->get_rewrite_rules($route_path, $route_defaults, $route_defaults['controller'], 1);
                 $new_rules = array_merge($route_rules, $new_rules);
             }
@@ -61,12 +67,20 @@ class MvcPublicLoader extends MvcLoader {
         return $new_rules;
     }
 
-    protected function get_rewrite_rules($route_path, $route_defaults, $controller, $first_query_var_match_index = 0) {
+    /**
+     * @return string[]
+     *
+     * @param array $route_defaults
+     * @param int $first_query_var_match_index
+     *
+     * @param string $route_path
+     */
+    protected function get_rewrite_rules($route_path, $route_defaults, string $controller, $first_query_var_match_index = 0): array {
 
         add_rewrite_tag('%' . $controller . '%', '(.+)');
 
         $rewrite_path = $route_path;
-        $query_vars = array();
+        $query_vars = [];
         $query_var_counter = $first_query_var_match_index;
         $query_var_match_string = '';
 
@@ -75,7 +89,7 @@ class MvcPublicLoader extends MvcLoader {
         preg_match_all('/{:(.+?)(:.*?)?}/', $rewrite_path, $matches);
         foreach ($matches[1] as $query_var) {
             $query_var = 'mvc_' . $query_var;
-            if ($query_var != 'mvc_controller') {
+            if ($query_var !== 'mvc_controller') {
                 $query_var_match_string .= '&' . $query_var . '=$matches[' . $query_var_counter . ']';
             }
             $query_vars[] = $query_var;
@@ -86,7 +100,7 @@ class MvcPublicLoader extends MvcLoader {
         if (!empty($route_defaults)) {
             foreach ($route_defaults as $query_var => $value) {
                 $query_var = 'mvc_' . $query_var;
-                if ($query_var != 'mvc_controller') {
+                if ($query_var !== 'mvc_controller') {
                     $query_var_match_string .= '&' . $query_var . '=' . $value;
                     $query_vars[] = $query_var;
                 }
@@ -100,22 +114,25 @@ class MvcPublicLoader extends MvcLoader {
         $rewrite_path = preg_replace('/({:[\w_-]+})/', '([^/]+)', $rewrite_path);
         // Replace any route params with defined patterns (e.g. {:param_name:[\d]+}) in the route path with
         // their pattern (e.g. ([\d]+))
-        $rewrite_path = preg_replace('/({:[\w_-]+:)(.*?)}/', '(\2)', $rewrite_path);
+        $rewrite_path = preg_replace('/({:[\w_-]+:)(.*?)}/', '(\2)', (string) $rewrite_path);
         $rewrite_path = '^' . $rewrite_path . '/?$';
 
         $controller_value = empty($route_defaults['controller']) ? $controller : $route_defaults['controller'];
-        $controller_rules = array();
+        $controller_rules = [];
         $controller_rules[$rewrite_path] = 'index.php?mvc_controller=' . $controller_value . $query_var_match_string;
 
         return $controller_rules;
     }
 
-    public function get_query_vars() {
+    public function get_query_vars(): array {
         return array_merge($this->query_vars, $this->get_user_defined_query_vars());
     }
 
-    public function get_user_defined_query_vars() {
-        $vars = array();
+    /**
+     * @return list<string>
+     */
+    public function get_user_defined_query_vars(): array {
+        $vars = [];
         $params = MvcConfiguration::get('RouteParams');
         if (isset($params)) {
             foreach (mvc_get_plugins() as $plugin_name) {
@@ -129,12 +146,14 @@ class MvcPublicLoader extends MvcLoader {
         return $vars;
     }
 
-    public function add_query_vars($vars = array()) {
-        $vars = array_merge($vars, $this->get_query_vars());
-        return $vars;
+    /**
+     * @param array $vars
+     */
+    public function add_query_vars($vars = []): array {
+        return array_merge($vars, $this->get_query_vars());
     }
 
-    public function load_query_vars() {
+    public function load_query_vars(): void {
         global $wp;
         $query_vars = $this->get_query_vars();
         foreach ($query_vars as $qv) {
@@ -142,7 +161,7 @@ class MvcPublicLoader extends MvcLoader {
         }
     }
 
-    public function template_redirect() {
+    public function template_redirect(): void {
         global $wp_query, $mvc_params;
 
         $routing_params = $this->get_routing_params();
@@ -154,16 +173,16 @@ class MvcPublicLoader extends MvcLoader {
         }
     }
 
-    protected function get_routing_params() {
+    protected function get_routing_params(): array|false {
         global $wp_query;
 
         $controller = $wp_query->get('mvc_controller');
 
         if ($controller) {
             $query_params = $wp_query->query;
-            $params = array();
+            $params = [];
             foreach ($query_params as $key => $value) {
-                $key = preg_replace('/^(mvc_)/', '', $key);
+                $key = preg_replace('/^(mvc_)/', '', (string) $key);
                 $params[$key] = $value;
             }
 

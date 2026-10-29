@@ -11,14 +11,14 @@ class MvcHtmlHelper extends MvcHelper {
      * @param string $confirm_message - javascript confirmation message
      * @return string - string <a /> element
      */
-    static function link($text, $url, $options=array(), $confirm_message='') {
+    static function link(string $text, $url, $options=[], $confirm_message=''): string {
         if (is_array($url)) {
             $url = MvcRouter::public_url($url);
         }
-        $defaults = array(
+        $defaults = [
             'href' => $url,
             'title' => $text
-        );
+        ];
 
         $options = array_merge($defaults, $options);
 
@@ -34,48 +34,59 @@ class MvcHtmlHelper extends MvcHelper {
         }
 
         $attributes_html = self::attributes_html($options, 'a');
-        $html = '<a'.$attributes_html.'>'.$text.'</a>';
-        return $html;
+        return '<a'.$attributes_html.'>'.$text.'</a>';
     }
 
-    static function object_url($object, $options=array()) {
-        $defaults = array(
-            'id' => $object->__id,
+    /**
+     * @param array $options
+     *
+     * @param object|null $object
+     */
+    static function object_url($object, $options=[]): string {
+        $defaults = [
+            'id' => $object?->__id,
             'action' => 'show',
             'object' => $object
-        );
+        ];
         $options = array_merge($defaults, $options);
-        $url = MvcRouter::public_url($options);
-        return $url;
+        return MvcRouter::public_url($options);
     }
 
-    static function object_link($object, $options=array()) {
+    /**
+     * @param object|null $object
+     */
+    static function object_link($object, array $options=[]): string {
         $url = self::object_url($object, $options);
-        $text = empty($options['text']) ? $object->__name : $options['text'];
+        $text = (string) (empty($options['text']) ? $object?->__name : $options['text']);
         return self::link($text, $url, $options);
     }
 
-    static function admin_object_url($object, $options=array()) {
-        $defaults = array(
-            'id' => $object->__id,
+    /**
+     * @param array $options
+     *
+     * @param object|null $object
+     */
+    static function admin_object_url($object, $options=[]): string {
+        $defaults = [
+            'id' => $object?->__id,
             'object' => $object
-        );
+        ];
         $options = array_merge($defaults, $options);
-        $url = MvcRouter::admin_url($options);
-        return $url;
+        return MvcRouter::admin_url($options);
     }
 
-    static function admin_object_link($object, $options=array()) {
+    /**
+     * @param object|null $object
+     */
+    static function admin_object_link($object, array $options=[]): string {
         $url = self::admin_object_url($object, $options);
-        $text = empty($options['text']) ? $object->__name : $options['text'];
+        $text = (string) (empty($options['text']) ? $object?->__name : $options['text']);
         return self::link($text, $url);
     }
 
-    public function __call($method, $args) {
-        if (property_exists($this, $method)) {
-            if (is_callable($this->$method)) {
-                return call_user_func_array($this->$method, $args);
-            }
+    public function __call(string $method, array $args) {
+        if (property_exists($this, $method) && is_callable($this->$method)) {
+            return call_user_func_array($this->$method, $args);
         }
     }
 

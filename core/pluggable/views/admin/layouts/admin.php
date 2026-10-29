@@ -1,3 +1,4 @@
+<?php /** @psalm-scope-this MvcController */ ?>
 <div class="wrap">
 
 <?php $this->display_flash(); ?>

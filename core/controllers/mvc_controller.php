@@ -1,16 +1,76 @@
 <?php
 
+// Model and helper names are injected by the framework at runtime.
+/**
+ * @psalm-no-seal-properties
+ * @psalm-consistent-constructor
+ */
+#[\AllowDynamicProperties]
 class MvcController {
-    
-    protected $file_includer = null;
-    public $after = null;
-    public $before = null;
-    public $is_controller = true;
-    public $model = null;
+
+    /** @var HtmlHelper|null */
+    public $html;
+    /** @var MvcHelper|null */
+    public $helper;
+    /** @var MvcFormHelper */
+    public $form;
+    /** @var string|null */
+    public $views_path;
+    /** @var string|null */
+    public $model_name;
+    /** @var string|null */
+    public $action;
+    /** @var MvcModelObject|null */
+    public $object;
+    public bool $is_admin = false;
+    /** @var string|null */
+    public $main_view;
+
+    protected \MvcFileIncluder $file_includer;
+
+    /**
+     * @var null|string|string[]
+     *
+     */
+    public $after;
+
+    /**
+     * @var null|string|string[]
+     *
+     */
+    public $before;
+    public bool $is_controller = true;
+
+    public ?MvcModel $model = null;
+
+    /**
+     * @var string
+     */
     public $name = '';
-    public $params = null;
+    public array $params = [];
+
+    /**
+     * @var bool
+     */
     public $view_rendered = false;
-    public $view_vars = array();
+    public array $view_vars = [];
+
+    protected function require_model(): MvcModel {
+        if (!$this->model instanceof MvcModel) {
+            throw new LogicException('No model loaded for ' . static::class);
+        }
+        return $this->model;
+    }
+
+    protected function require_html(): HtmlHelper {
+        if (!$this->html instanceof HtmlHelper) {
+            $this->load_helper('Html');
+        }
+        if (!$this->html instanceof HtmlHelper) {
+            throw new LogicException('Unable to load HtmlHelper');
+        }
+        return $this->html;
+    }
     
     function __construct() {
 
@@ -24,7 +84,7 @@ class MvcController {
     
     }
     
-    public function init() {
+    public function init(): void {
     
         $this->load_helper('Html');
         
@@ -34,21 +94,33 @@ class MvcController {
             $tableize = MvcInflector::tableize($model_name);
             // Add dynamically-created methods to HtmlHelper in the form speaker_url($object), speaker_link($object)
             $method = $underscore . '_url';
-            $this->html->{$method} = function ($object, $options = array()) use ($tableize) {
-                $defaults = array(
+            $this->require_html()->{$method} = /**
+             * @param object|null $object
+             * @param array $options
+             *
+             * @return string
+             */
+            function ($object, $options = []) use ($tableize): string {
+                $defaults = [
                     'controller' => $tableize,
                     'action' => 'show'
-                );
+                ];
                 $options = array_merge($defaults, $options);
 
                 return HtmlHelper::object_url($object, $options);
             };
             $method = $underscore . '_link';
-            $this->html->{$method} = function ($object, $options = array()) use ($tableize) {
-                $defaults = array(
+            $this->require_html()->{$method} = /**
+             * @param object|null $object
+             * @param array $options
+             *
+             * @return string
+             */
+            function ($object, $options = []) use ($tableize): string {
+                $defaults = [
                     'controller' => $tableize,
                     'action' => 'show'
-                );
+                ];
                 $options = array_merge($defaults, $options);
 
                 return HtmlHelper::object_link($object, $options);
@@ -59,73 +131,88 @@ class MvcController {
             $this->load_helper('Form');
         }
         
-        if (empty($this->model)) {
+        if (!$this->model instanceof \MvcModel) {
             $helper_name = class_exists('AppHelper') ? 'AppHelper' : 'MvcHelper';
         } else {
-            $model = $this->model->name;
+            $model = $this->require_model()->name;
             if (class_exists($model.'Helper')) {
                 $helper_name = $model.'Helper';
-            } else if (class_exists('AppHelper')) {
+            } elseif (class_exists('AppHelper')) {
                 $helper_name = 'AppHelper';
             } else {
                 $helper_name = 'MvcHelper';
             }
         }
+        if (!is_a($helper_name, MvcHelper::class, true)) {
+            MvcError::fatal('Expected a MvcHelper implementation.');
+        }
         $this->helper = new $helper_name();
         
         if (is_string($this->before)) {
-            $this->before = array($this->before);
+            $this->before = [$this->before];
         }
         if (is_string($this->after)) {
-            $this->after = array($this->after);
+            $this->after = [$this->after];
         }
         
     }
     
+    /**
+     * @return void
+     */
     public function index() {
     
     }
     
-    private function set_meta() {
-        $model = get_class($this);
+    private function set_meta(): void {
+        $model = static::class;
         $model = preg_replace('/Controller$/', '', $model);
         $this->name = MvcInflector::underscore($model);
         $this->views_path = '';
-        if (preg_match('/^Admin[A-Z]/', $model)) {
+        if (preg_match('/^Admin[A-Z]/', (string) $model)) {
             $this->views_path = 'admin/';
-            $model = preg_replace('/^Admin/', '', $model);
+            $model = preg_replace('/^Admin/', '', (string) $model);
         }
         
         $model = MvcInflector::singularize($model);
         $this->views_path .= MvcInflector::tableize($model).'/';
         $this->model_name = $model;
         // To do: remove the necessity of this redundancy
-        if (class_exists($model)) {
+        if (is_a($model, MvcModel::class, true)) {
             $model_instance = new $model();
             $this->model = $model_instance;
             $this->{$model} = $model_instance;
         }
     }
     
-    protected function load_helper($helper_name) {
-        $helper_name = $helper_name.'Helper';
+    /**
+     * @return void
+     */
+    protected function load_helper(string $helper_name) {
+        $helper_name .= 'Helper';
         $helper_underscore = MvcInflector::underscore($helper_name);
         
         $this->file_includer->require_first_app_file_or_core_file('helpers/'.$helper_underscore.'.php');
         
-        if (class_exists($helper_name)) {
+        if (is_a($helper_name, MvcHelper::class, true)) {
             $helper_method_name = str_replace('_helper', '', $helper_underscore);
         
-            $this->{$helper_method_name} = new $helper_name();
+            $helper = new $helper_name();
+            $this->{$helper_method_name} = $helper;
         
-            if ($helper_name == 'FormHelper') {
-                $this->{$helper_method_name}->controller = new stdClass();
-                $this->{$helper_method_name}->controller->action = $this->action;
-                $this->{$helper_method_name}->controller->name = $this->name;
+            if ($helper instanceof MvcFormHelper) {
+                $helper->controller = new stdClass();
+                $helper->controller->action = $this->action;
+                $helper->controller->name = $this->name;
             }
         }
     }
     
+    /**
+     * @param string $model_name
+     *
+     * @return void
+     */
     protected function load_model($model_name) {
         $model_underscore = MvcInflector::underscore($model_name);
         
@@ -136,41 +223,50 @@ class MvcController {
         }
     }
     
+    /**
+     * @return void
+     * @param array $model_names
+     */
     protected function load_models($model_names) {
         foreach ($model_names as $model_name) {
             $this->load_model($model_name);
         }
     }
     
-    public function set_object() {
-        if (!empty($this->model->invalid_data)) {
-            if (!empty($this->params['id']) && empty($this->model->invalid_data[$this->model->primary_key])) {
-                $this->model->invalid_data[$this->model->primary_key] = $this->params['id'];
+    public function set_object(): bool {
+        $object = null;
+        $model = $this->require_model();
+        if (!empty($model->invalid_data)) {
+            if (!empty($this->params['id']) && empty($model->invalid_data[$model->primary_key])) {
+                $model->invalid_data[$model->primary_key] = $this->params['id'];
             }
-            $object = $this->model->new_object($this->model->invalid_data);
-        } else if (!empty($this->params['id'])) {
-            $object = $this->model->find_by_id($this->params['id']);
+            $object = $model->new_object($model->invalid_data);
+        } elseif (!empty($this->params['id'])) {
+            $object = $this->require_model()->find_by_id($this->params['id']);
         }
-        if (!empty($object)) {
-            $this->set('object', $object);
-            MvcObjectRegistry::add_object($this->model->name, $this->object);
+        $this->set('object', $object);
+        if ($object instanceof \MvcModelObject) {
+            MvcObjectRegistry::add_object($this->require_model()->name, $this->object);
             return true;
         }
         MvcError::warning('Object not found.');
         return false;
     }
     
-    public function set($variable_name_or_array, $data=null) {
+    public function set(string|array $variable_name_or_array, mixed $data=null): void {
         if (is_string($variable_name_or_array)) {
             $this->set_view_var($variable_name_or_array, $data);
-        } else if (is_array($variable_name_or_array)) {
+        } else {
             foreach ($variable_name_or_array as $key => $value) {
                 $this->set_view_var($key, $value);
             }
         }
     }
     
-    public function render_view($path, $options=array()) {
+    /**
+     * @param string $path
+     */
+    public function render_view($path, array $options=[]): void {
     
         // Rendering from within a controller
         if ($this->is_controller) {
@@ -196,18 +292,25 @@ class MvcController {
     
     }
     
-    public function render_main_view() {
-        $this->main_view;
+    public function render_main_view(): void {
         $this->render_view_with_view_vars($this->main_view);
     }
     
-    protected function render_view_with_view_vars($path, $options=array()) {
+    /**
+     * @param null|string $path
+     *
+     * @return void
+     */
+    protected function render_view_with_view_vars($path, array $options=[]) {
+        if ($path === null) {
+            throw new LogicException('No view path selected.');
+        }
         
-        $view_vars = array(
+        $view_vars = [
             'model' => $this->model,
             'views_path' => $this->views_path,
             'helper' => $this->helper
-        );
+        ];
         
         if (!empty($options['locals'])) {
             $view_vars = array_merge($view_vars, $options['locals']);
@@ -219,18 +322,22 @@ class MvcController {
     
     }
     
-    protected function render_view_from_view($path, $options=array()) {
+    /**
+     * @return void
+     * @param string $path
+     */
+    protected function render_view_from_view($path, array $options=[]) {
 
-        $view_vars = array();
+        $view_vars = [];
         
-        if (strpos($path, '/') === false) {
+        if (!str_contains($path, '/')) {
             $path = $this->name.'/'.$path;
         }
         
         if (isset($options['collection'])) {
             $var_name = empty($options['as']) ? 'object' : $options['as'];
             foreach ($options['collection'] as $object) {
-                $view_vars = array();
+                $view_vars = [];
                 $view_vars[$var_name] = $object;
                 if (!empty($options['locals'])) {
                     $view_vars = array_merge($view_vars, $options['locals']);
@@ -248,11 +355,15 @@ class MvcController {
     
     }
     
-    public function render_to_string($path, $options=array()) {
-        $defaults = array(
+    /**
+     * @param string $path
+     * @param array $options
+     */
+    public function render_to_string($path, $options=[]): string|false {
+        $defaults = [
             'bypass_layout' => true,
             'vars' => $this->view_vars
-        );
+        ];
         $is_controller = $this->is_controller;
         $this->is_controller = false;
         $options = array_merge($defaults, $options);
@@ -264,93 +375,121 @@ class MvcController {
         return $string;
     }
     
-    protected function include_view($path, $view_vars=array()) {
+    /**
+     * @param array $view_vars
+     *
+     *
+     * @return void
+     * @param string $path
+     */
+    protected function include_view($path, $view_vars=[]) {
         extract($view_vars);
-        $path = preg_replace('/^admin_([^\/]+)/', 'admin/$1', $path);
+        $path = preg_replace('/^admin_([^\/]+)/', 'admin/$1', (string) $path);
         $filepath = $this->file_includer->find_theme_or_view_file($path);
         if (!$filepath) {
-            $path = preg_replace('/admin\/(?!layouts)([\w_]+)/', 'admin', $path);
+            $path = preg_replace('/admin\/(?!layouts)([\w_]+)/', 'admin', (string) $path);
             $filepath = $this->file_includer->find_theme_or_view_file($path);
             if (!$filepath) {
                 MvcError::warning('View "'.$path.'" not found.');
+                return;
             }
         }
+        /** @psalm-suppress UnresolvableInclude MVC resolves this view from registered application/theme paths. */
         require $filepath;
     }
     
-    private function set_view_var($key, $value) {
+    /**
+     * @param mixed $value
+     */
+    private function set_view_var(string|int $key, $value): void {
         if ($key == 'object') {
             $this->object = $value;
         }
         $this->view_vars[$key] = $value;
     }
     
+    /**
+     * @return void
+     * @param int|string $type
+     * @param string $message
+     */
     protected function set_flash($type, $message) {
         $this->init_flash();
         $_SESSION['mvc_flash'][$type] = $message;
     }
     
+    /**
+     * @return void
+     * @param int|string $type
+     */
     protected function unset_flash($type) {
         $this->init_flash();
         unset($_SESSION['mvc_flash'][$type]);
     }
     
-    protected function get_flash($type) {
+    /**
+     * @param int|string $type
+     */
+    protected function get_flash($type) : ?string {
         $this->init_flash();
-        $message = empty($_SESSION['mvc_flash'][$type]) ? null : $_SESSION['mvc_flash'][$type];
-        return $message;
+        return empty($_SESSION['mvc_flash'][$type]) ? null : $_SESSION['mvc_flash'][$type];
     }
     
-    protected function get_all_flashes() {
+    protected function get_all_flashes() : array {
         $this->init_flash();
         return $_SESSION['mvc_flash'];
     }
     
-    public function flash($type, $message=null) {
-        if (func_num_args() == 1) {
+    /**
+     * @param string $type
+     * @param null|string $message
+     *
+     */
+    public function flash($type, $message=null) : ?string {
+        if (func_num_args() === 1) {
             $message = $this->get_flash($type);
             $this->unset_flash($type);
             return $message;
         }
-        $this->set_flash($type, $message);
+        $this->set_flash($type, $message ?? '');
+        return null;
     }
     
-    public function display_flash() {
+    public function display_flash(): void {
         $flashes = $this->get_all_flashes();
         $html = '';
-        if (!empty($flashes)) {
-            foreach ($flashes as $type => $message) {
-                $classes = array();
-                $classes[] = $type;
-                if ($this->is_admin) {
-                    if ($type == 'notice') {
-                        $classes[] = 'updated';
-                    }
-                }
-                $html .= '
+        foreach ($flashes as $type => $message) {
+            $classes = [];
+            $classes[] = $type;
+            if ($this->is_admin && $type == 'notice') {
+                $classes[] = 'updated';
+            }
+            $html .= '
                     <div id="message" class="'.implode(' ', $classes).'">
                         <p>
                             '.$message.'
                         </p>
                     </div>';
-                $this->unset_flash($type);
-            }
+            $this->unset_flash($type);
         }
         echo $html;
     }
     
-    private function init_flash() {
+    private function init_flash(): void {
         if (!isset($_SESSION['mvc_flash'])) {
-            $_SESSION['mvc_flash'] = array();
+            $_SESSION['mvc_flash'] = [];
         }
     }
     
-    public function refresh() {
+    public function refresh(): void {
         $location = $this->current_url();
         $this->redirect($location);
     }
     
-    public function redirect($location, $status=302) {
+    /**
+     * @param int|string $status
+     */
+    public function redirect(string $location, $status=302): void {
         
         // MvcDispatcher::dispatch() doesn't run until after the WP has already begun to print out HTML, unfortunately, so
         // this will almost always be done with JS instead of wp_redirect(). 
@@ -361,15 +500,18 @@ class MvcController {
                 </script>';
             echo $html;
         } else {
-            wp_redirect($location, $status);
+            wp_redirect($location, (int) $status);
         }
         
         die();
 
     }
     
+    /**
+     * @return string
+     */
     public function current_url() {
-        return $_SERVER['REQUEST_URI'];
+        return $_SERVER['REQUEST_URI'] ?? '/';
     }
 
 }

@@ -1,25 +1,31 @@
 <?php
 
+// Record fields and lazy associations depend on the application's database schema.
+/** @psalm-no-seal-properties */
+#[\AllowDynamicProperties]
 class MvcModelObject {
     
-    public $__model_name = null;
-    private $__settings = null;
+    public ?string $__model_name = null;
+    private array $__settings = [];
     
-    function __construct($model) {
-        $this->__settings = array();
+    function __construct(MvcModel $model) {
         $this->__settings['properties'] = $model->properties;
-        $this->__settings['model'] = array(
+        $this->__settings['model'] = [
             'name' => $model->name,
             'primary_key' => $model->primary_key
-        );
+        ];
         $this->__model_name = $model->name;
     }
     
-    public function to_array() {
+    public function to_array(): array {
         return get_object_vars($this);
     }
+
+    public function __set(string $property_name, mixed $value): void {
+        $this->$property_name = $value;
+    }
     
-    public function __get($property_name) {
+    public function __get(string $property_name): mixed {
         if (!empty($this->__settings['properties'][$property_name])) {
             $property = $this->__settings['properties'][$property_name];
             if ($property['type'] == 'association') {
@@ -28,56 +34,51 @@ class MvcModelObject {
                 return $this->$property_name;
             }
         }
-        if ($this->__settings['model']['name'] == 'MvcPost') {
-            if (!empty($this->post_type)) {
-                if (substr($this->post_type, 0, 4) == 'mvc_') {
-                    $model_name = MvcInflector::camelize(substr($this->post_type, 4));
-                    $model = MvcModelRegistry::get_model($model_name);
-                    $object = $model->find_one(array(
-                        'post_id' => $this->ID,
-                        'recursive' => 0
-                    ));
-                    $this->$property_name = $object;
-                    return $this->$property_name;
-                }
-            }
+        if ($this->__settings['model']['name'] == 'MvcPost' && !empty($this->post_type) && str_starts_with((string) $this->post_type, 'mvc_')) {
+            $model_name = MvcInflector::camelize(substr((string) $this->post_type, 4));
+            $model = MvcModelRegistry::require_model($model_name);
+            $object = $model->find_one([
+                'post_id' => $this->ID,
+                'recursive' => 0
+            ]);
+            $this->$property_name = $object;
+            return $this->$property_name;
         }
         $class = empty($this->__model_name) ? 'MvcModelObject' : $this->__model_name;
         MvcError::warning('Undefined property: '.$class.'::'.$property_name.'.');
+        return null;
     }
     
-    private function get_associated_objects($association) {
+    private function get_associated_objects(array $association) : array|MvcModelObject|null {
         $model_name = $association['class'];
-        $model = MvcModelRegistry::get_model($model_name);
+        $model = MvcModelRegistry::require_model($model_name);
         switch ($association['type']) {
             case 'belongs_to':
-                $associated_object = $model->find_by_id($this->{$association['foreign_key']}, array(
+                return $model->find_by_id($this->{$association['foreign_key']}, [
                     'recursive' => 0
-                ));
-                return $associated_object;
+                ]);
                 
             case 'has_many':
-                $associated_objects = $model->find(array(
+                return $model->find([
                     'selects' => $association['fields'],
-                    'conditions' => array($association['foreign_key'] => $this->__id),
+                    'conditions' => [$association['foreign_key'] => $this->__id],
                     'recursive' => 0
-                ));
-                return $associated_objects;
+                ]);
             
             case 'has_and_belongs_to_many':
                 $join_alias = 'JoinTable';
-                $associated_objects = $model->find(array(
+                return $model->find([
                     'selects' => $association['fields'],
-                    'joins' => array(
+                    'joins' => [
                         'table' => MvcModel::process_table_name($association['join_table']),
                         'on' => $join_alias.'.'.$association['association_foreign_key'].' = '.$model_name.'.'.$model->primary_key,
                         'alias' => $join_alias
-                    ),
-                    'conditions' => array($join_alias.'.'.$association['foreign_key'] => $this->__id),
+                    ],
+                    'conditions' => [$join_alias.'.'.$association['foreign_key'] => $this->__id],
                     'recursive' => 0
-                ));
-                return $associated_objects;
+                ]);
         }
+        return null;
     }
     
 }

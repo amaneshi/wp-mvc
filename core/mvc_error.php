@@ -2,20 +2,20 @@
 
 class MvcError {
 
-    public static function fatal($message) {
+    public static function fatal(string $message): never {
         self::write('fatal', $message);
         die();
     }
 
-    public static function warning($message) {
+    public static function warning(string $message): void {
         self::write('warning', $message);
     }
 
-    public static function notice($message) {
+    public static function notice(string $message): void {
         self::write('notice', $message);
     }
     
-    private static function write($type_key, $message) {
+    private static function write(string $type_key, string $message): void {
     
         $type_name = self::get_type($type_key);
         
@@ -41,25 +41,23 @@ class MvcError {
     
     }
     
-    private static function get_type($type_key) {
+    private static function get_type(string $type_key): string {
     
-        $types = array(
+        $types = [
             'fatal' => 'Fatal Error',
             'warning' => 'Warning',
             'notice' => 'Notice'
-        );
+        ];
         
         return $types[$type_key];
     
     }
     
-    private static function get_context() {
+    private static function get_context(): array {
     
         $backtrace = debug_backtrace();
         
-        $context = empty($backtrace[3]['line']) ? $backtrace[2] : $backtrace[3];
-        
-        return $context;
+        return empty($backtrace[3]['line']) ? $backtrace[2] : $backtrace[3];
     
     }
 

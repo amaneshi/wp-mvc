@@ -2,27 +2,35 @@
 
 class MvcDataValidationError {
 
-    private $errors = array();
+    private array $errors = [];
     
+    /**
+     * @param string|null $field
+     * @param string|null $message
+     */
     function __construct($field=null, $message=null) {
         if ($field && $message) {
             $this->add_error($field, $message);
         }
     }
     
-    public function add_error($field, $message) {
-        $this->errors[] = array(
+    /**
+     * @param string $field
+     * @param string $message
+     */
+    public function add_error($field, $message): void {
+        $this->errors[] = [
             'field' => $field,
             'message' => $message
-        );
+        ];
     }
     
-    public function get_errors() {
+    public function get_errors(): array {
         return $this->errors;
     }
     
-    public function get_html() {
-        if (empty($this->errors)) {
+    public function get_html(): false|string {
+        if ($this->errors === []) {
             return false;
         }
         $html = '';

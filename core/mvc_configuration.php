@@ -1,9 +1,15 @@
 <?php
 
+// Configuration keys are supplied by applications at runtime.
+/** @psalm-no-seal-properties */
+#[\AllowDynamicProperties]
 class MvcConfiguration {
 
-    static function &get_instance($boot = true) {
-        static $instance = array();
+    /**
+     * @param bool $boot
+     */
+    static function &get_instance($boot = true) : MvcConfiguration {
+        static $instance = [];
         
         if (!$instance) {
             $mvc_configuration = new MvcConfiguration();
@@ -13,19 +19,25 @@ class MvcConfiguration {
         return $instance[0];
     }
 
-    static function set($config, $value = null) {
+    /**
+     * @param (mixed|string[])[]|string $config
+     * @param null|string $value
+     *
+     */
+    static function set($config, $value = null): bool {
+        /** @psalm-suppress UnsupportedReferenceUsage Preserved registry aliasing; covered by reference-contract regression tests. */
         $_this =& MvcConfiguration::get_instance();
 
         if (!is_array($config)) {
-            $config = array($config => $value);
+            $config = [$config => $value];
         }
 
         foreach ($config as $name => $value) {
-            if (strpos($name, '.') === false) {
+            if (!str_contains((string) $name, '.')) {
                 $_this->{$name} = $value;
             } else {
-                $names = explode('.', $name, 2);
-                if (count($names) == 2) {
+                $names = explode('.', (string) $name, 2);
+                if (count($names) === 2) {
                     $_this->{$names[0]}[$names[1]] = $value;
                 }
             }
@@ -34,29 +46,35 @@ class MvcConfiguration {
         return true;
     }
 
-    static function append($config, $value = null) {
+    /**
+     * @param array|string $config
+     *
+     * @param mixed $value
+     */
+    static function append($config, $value = null): bool {
         global $plugin_name;
+        /** @psalm-suppress UnsupportedReferenceUsage Preserved registry aliasing; covered by reference-contract regression tests. */
         $_this =& MvcConfiguration::get_instance();
 
         if (!is_array($config)) {
-            $config = array($config => $value);
+            $config = [$config => $value];
         }
 
         foreach ($config as $name => $value) {
-            if (empty($_this->{$name})) {
-                $_this->{$name}[$plugin_name] = $value;
-            } else {
-                $_this->{$name}[$plugin_name] = array_merge($_this->{$name}, $value);
-            }
+            $_this->{$name}[$plugin_name] = empty($_this->{$name}) ? $value : array_merge($_this->{$name}, $value ?? []);
         }
         
         return true;
     }
 
-    static function get($config) {
+    /**
+     * @param string $config
+     */
+    static function get($config) : mixed {
+        /** @psalm-suppress UnsupportedReferenceUsage Preserved registry aliasing; covered by reference-contract regression tests. */
         $_this =& MvcConfiguration::get_instance();
 
-        if (strpos($config, '.') !== false) {
+        if (str_contains($config, '.')) {
             $names = explode('.', $config, 2);
             $config = $names[0];
         }
@@ -66,10 +84,8 @@ class MvcConfiguration {
         if (!isset($names[1])) {
             return $_this->{$config};
         }
-        if (count($names) == 2) {
-            if (isset($_this->{$config}[$names[1]])) {
-                return $_this->{$config}[$names[1]];
-            }
+        if (count($names) === 2 && isset($_this->{$config}[$names[1]])) {
+            return $_this->{$config}[$names[1]];
         }
         return null;
     }

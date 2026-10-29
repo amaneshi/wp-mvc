@@ -1,3 +1,12 @@
+<?php
+/**
+ * @psalm-scope-this MvcAdminController
+ * @var MvcModel $model
+ * @var MvcHelper $helper
+ * @var array{base: string, format: string, total: int, current: int, add_args: array} $pagination
+ * @var array|null $objects
+ */
+?>
 <h2><?php echo MvcInflector::pluralize_titleize($model->name); ?></h2>
 
 <form id="posts-filter" action="<?php echo MvcRouter::admin_url(); ?>" method="get">
@@ -15,7 +24,7 @@
 
     <div class="tablenav-pages">
     
-        <?php echo paginate_links($pagination); ?>
+        <?php echo paginate_links(array_replace($pagination, ['type' => 'plain'])); ?>
     
     </div>
 
@@ -43,7 +52,7 @@
 
     <div class="tablenav-pages">
     
-        <?php echo paginate_links($pagination); ?>
+        <?php echo paginate_links(array_replace($pagination, ['type' => 'plain'])); ?>
     
     </div>
 

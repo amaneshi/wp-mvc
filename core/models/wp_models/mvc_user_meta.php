@@ -2,16 +2,20 @@
 
 class MvcUserMeta extends MvcModel {
 
-    var $table = '{prefix}usermeta';
-    var $primary_key = 'umeta_id';
-    var $order = 'meta_key';
-    var $display_field = 'meta_key';
-    var $belongs_to = array(
-        'User' => array(
+    public string $table = '{prefix}usermeta';
+
+    public string $primary_key = 'umeta_id';
+
+    public array|string|null $order = 'meta_key';
+
+    public ?string $display_field = 'meta_key';
+
+    public ?array $belongs_to = [
+        'User' => [
             'class' => 'MvcUser',
             'foreign_key' => 'user_id'
-        )
-    );
+        ]
+    ];
     
 }
 

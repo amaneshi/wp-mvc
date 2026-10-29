@@ -2,16 +2,20 @@
 
 class MvcPostMeta extends MvcModel {
 
-    var $table = '{prefix}postmeta';
-    var $primary_key = 'meta_id';
-    var $order = 'meta_key';
-    var $display_field = 'meta_key';
-    var $belongs_to = array(
-        'Post' => array(
+    public string $table = '{prefix}postmeta';
+
+    public string $primary_key = 'meta_id';
+
+    public array|string|null $order = 'meta_key';
+
+    public ?string $display_field = 'meta_key';
+
+    public ?array $belongs_to = [
+        'Post' => [
             'class' => 'MvcPost',
             'foreign_key' => 'post_id'
-        )
-    );
+        ]
+    ];
     
 }
 

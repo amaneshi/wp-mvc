@@ -1,42 +1,67 @@
 <?php
 
+// Applications attach model-specific URL/link callbacks to helpers at runtime.
+/**
+ * @psalm-no-seal-properties
+ * @psalm-consistent-constructor
+ */
+#[\AllowDynamicProperties]
 class MvcHelper {
 
-    protected $file_includer = null;
+    /** @var string */
+    public $plugin_name = '';
+
+    protected \MvcFileIncluder $file_includer;
     
     function __construct() {
         $this->file_includer = new MvcFileIncluder();
         $this->init();
         $this->plugin_name = MvcObjectRegistry::get_object('plugin_name');
-        if (! isset($this->plugin_name)) {
+        if (!property_exists($this, 'plugin_name') || $this->plugin_name === null) {
             $this->plugin_name = '';
         }
     }
     
+    /**
+     * @return void
+     */
     public function init() {
     }
     
-    public function render_view($path, $view_vars=array()) {
+    /**
+     * @param string $path
+     * @param array $view_vars
+     */
+    public function render_view($path, $view_vars=[]): void {
         extract($view_vars);
         $filepath = $this->file_includer->find_first_app_file_or_core_file('views/'.$path.'.php');
         if (!$filepath) {
-            $path = preg_replace('/admin\/(?!layouts)([\w_]+)/', 'admin', $path);
+            $path = preg_replace('/admin\/(?!layouts)([\w_]+)/', 'admin', (string) $path);
             $filepath = $this->file_includer->find_first_app_file_or_core_file('views/'.$path.'.php');
             if (!$filepath) {
                 MvcError::warning('View "'.$path.'" not found.');
             }
         }
+        /** @psalm-suppress UnresolvableInclude MVC resolves this helper view from registered application paths. */
         require $filepath;
     }
     
+    /**
+     * @return string
+     * @param string $string
+     */
     static function esc_attr($string) {
         return esc_attr($string);
     }
     
-    static function attributes_html($attributes, $valid_attributes_array_or_tag) {
+    /**
+     * @param array $attributes
+     * @param array|string $valid_attributes_array_or_tag
+     */
+    static function attributes_html($attributes, $valid_attributes_array_or_tag): string {
     
-        $event_attributes = array(
-            'standard' => array(
+        $event_attributes = [
+            'standard' => [
                 'onclick',
                 'ondblclick',
                 'onkeydown',
@@ -47,20 +72,20 @@ class MvcHelper {
                 'onmouseout',
                 'onmouseover',
                 'onmouseup'
-            ),
-            'form' => array(
+            ],
+            'form' => [
                 'onblur',
                 'onchange',
                 'onfocus',
                 'onreset',
                 'onselect',
                 'onsubmit'
-            )
-        );
+            ]
+        ];
     
         // To do: add on* event attributes
-        $valid_attributes_by_tag = array(
-            'a' => array(
+        $valid_attributes_by_tag = [
+            'a' => [
                 'accesskey',
                 'charset',
                 'class',
@@ -79,8 +104,8 @@ class MvcHelper {
                 'target',
                 'title',
                 'xml:lang'
-            ),
-            'input' => array(
+            ],
+            'input' => [
                 'accept',
                 'access_key',
                 'align',
@@ -107,8 +132,8 @@ class MvcHelper {
                 'value',
                 'xml:lang',
                 $event_attributes['form']
-            ),
-            'textarea' => array(
+            ],
+            'textarea' => [
                 'access_key',
                 'class',
                 'cols',
@@ -127,8 +152,8 @@ class MvcHelper {
                 'title',
                 'xml:lang',
                 $event_attributes['form']
-            ),
-            'select' => array(
+            ],
+            'select' => [
                 'class',
                 'dir',
                 'disabled',
@@ -143,8 +168,8 @@ class MvcHelper {
                 'title',
                 'xml:lang',
                 $event_attributes['form']
-            )
-        );
+            ]
+        ];
         
         foreach ($valid_attributes_by_tag as $key => $valid_attributes) {
             $valid_attributes = array_merge($event_attributes['standard'], $valid_attributes);
@@ -166,9 +191,12 @@ class MvcHelper {
     
     // Move these into an AdminHelper
     
-    public function admin_header_cells($controller) {
+    /**
+     * @param MvcAdminController $controller
+     */
+    public function admin_header_cells($controller): string {
         $html = '';
-        foreach ($controller->default_columns as $key => $column) {
+        foreach ($controller->default_columns ?? [] as $column) {
             $html .= $this->admin_header_cell(__($column['label'], $this->plugin_name));
         }
         $html .= $this->admin_header_cell('');
@@ -176,15 +204,20 @@ class MvcHelper {
         
     }
     
-    public function admin_header_cell($label) {
+    public function admin_header_cell(string $label): string {
         return '<th scope="col" class="manage-column">'.$label.'</th>';
     }
     
-    public function admin_table_cells($controller, $objects, $options = array()) {
+    /**
+     * @param MvcAdminController $controller
+     * @param array|null $objects
+     * @param array $options
+     */
+    public function admin_table_cells($controller, $objects, $options = []): string {
         $html = '';
-        foreach ($objects as $object) {
+        foreach ($objects ?? [] as $object) {
             $html .= '<tr>';
-            foreach ($controller->default_columns as $key => $column) {
+            foreach ($controller->default_columns ?? [] as $column) {
                 $html .= $this->admin_table_cell($controller, $object, $column, $options);
             }
             $html .= $this->admin_actions_cell($controller, $object, $options);
@@ -193,41 +226,47 @@ class MvcHelper {
         return $html;
     }
     
-    public function admin_table_cell($controller, $object, $column, $options = array()) {
-        if (!empty($column['value_method'])) {
-            $value = $controller->{$column['value_method']}($object);
-        } else {
-            $value = $object->{$column['key']};
-        }
+    /**
+     * @param MvcAdminController $controller
+     * @param object $object
+     * @param array $options
+     */
+    public function admin_table_cell($controller, $object, array $column, $options = []): string {
+        $value = empty($column['value_method']) ? $object->{$column['key']} : $controller->{$column['value_method']}($object);
         return '<td>'.$value.'</td>';
     }
     
-    public function admin_actions_cell($controller, $object, $options = array()) {
+    /**
+     * @param MvcAdminController $controller
+     * @param object $object
+     * @param array $options
+     */
+    public function admin_actions_cell($controller, $object, $options = []): string {
         
-        $default = array(
-            'actions' => array(
+        $default = [
+            'actions' => [
                 'edit' => true,
                 'view' => true,
                 'delete' => true,
-            )
-        );
+            ]
+        ];
         
         $options = array_merge($default, $options);
         
-        $links = array();
+        $links = [];
         $object_name = empty($object->__name) ? 'Item #'.$object->__id : $object->__name;
-        $encoded_object_name = $this->esc_attr($object_name);
+        $encoded_object_name = static::esc_attr($object_name);
         
         if($options['actions']['edit']){
-            $links[] = '<a href="'.MvcRouter::admin_url(array('object' => $object, 'action' => 'edit')).'" title="' . __('Edit', 'wpmvc') . ' ' .$encoded_object_name.'">' . __('Edit', 'wpmvc') .'</a>';
+            $links[] = '<a href="'.MvcRouter::admin_url(['object' => $object, 'action' => 'edit']).'" title="' . __('Edit', 'wpmvc') . ' ' .$encoded_object_name.'">' . __('Edit', 'wpmvc') .'</a>';
         }
         
         if($options['actions']['view']){
-            $links[] = '<a href="'.MvcRouter::public_url(array('object' => $object)).'" title="' . __('View', 'wpmvc') . ' ' .$encoded_object_name.'">' . __('View', 'wpmvc') .'</a>';
+            $links[] = '<a href="'.MvcRouter::public_url(['object' => $object]).'" title="' . __('View', 'wpmvc') . ' ' .$encoded_object_name.'">' . __('View', 'wpmvc') .'</a>';
         }
         
         if($options['actions']['delete']){
-            $links[] = '<a href="'.MvcRouter::admin_url(array('object' => $object, 'action' => 'delete')).'" title="' . __('Delete', 'wpmvc') . ' ' .$encoded_object_name.'" onclick="return confirm(&#039;' . __('Are you sure you want to delete', 'wpmvc') . ' ' .$encoded_object_name.'?&#039;);">' . __('Delete', 'wpmvc') .'</a>';
+            $links[] = '<a href="'.MvcRouter::admin_url(['object' => $object, 'action' => 'delete']).'" title="' . __('Delete', 'wpmvc') . ' ' .$encoded_object_name.'" onclick="return confirm(&#039;' . __('Are you sure you want to delete', 'wpmvc') . ' ' .$encoded_object_name.'?&#039;);">' . __('Delete', 'wpmvc') .'</a>';
         }
 
         $html = implode(' | ', $links);
@@ -236,13 +275,13 @@ class MvcHelper {
     
     // To do: move this into an MvcUtilities class (?)
     
-    static function array_flatten($array) {
+    static function array_flatten(array $array): mixed {
 
         foreach ($array as $key => $value){
             $array[$key] = (array)$value;
         }
         
-        return call_user_func_array('array_merge', $array);
+        return call_user_func_array(array_merge(...), $array);
     
     }
 

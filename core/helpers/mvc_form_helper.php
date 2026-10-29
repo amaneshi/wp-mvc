@@ -2,24 +2,48 @@
 
 class MvcFormHelper extends MvcHelper {
 
-	protected $is_in_admin_table = false;
+    public stdClass $controller;
+    public string $model_name = '';
+    public object|false|null $object = null;
+    public ?MvcModel $model = null;
+    public array $schema = [];
 
-    public function create($model_name, $options=array()) {
-        $defaults = array(
+    private function require_model(): MvcModel {
+        if (!$this->model instanceof MvcModel) {
+            throw new LogicException('Call create() before rendering model form fields');
+        }
+        return $this->model;
+    }
+
+    /**
+     * @var bool|null
+     */
+    public $is_admin;
+
+    /**
+     * @var bool
+     */
+    protected $is_in_admin_table = false;
+
+    /**
+     * @param array $options
+     */
+    public function create(string $model_name, $options=[]): string {
+        $defaults = [
             'action' => $this->controller->action,
             'controller' => MvcInflector::tableize($model_name),
             'public' => false,
             'enctype' => 'application/x-www-form-urlencoded',
             'is_admin' => false,
-        );
+        ];
         $options = array_merge($defaults, $options);
         $this->model_name = $model_name;
         $this->object = MvcObjectRegistry::get_object($model_name);
-        $this->model = MvcModelRegistry::get_model($model_name);
-        $this->schema = $this->model->schema;
+        $this->model = MvcModelRegistry::require_model($model_name);
+        $this->schema = $this->require_model()->schema ?? [];
         $this->is_admin = (bool) $options['is_admin'];
         $object_id = !empty($this->object) && !empty($this->object->__id) ? $this->object->__id : null;
-        $router_options = array('controller' => $options['controller'], 'action' => $options['action']);
+        $router_options = ['controller' => $options['controller'], 'action' => $options['action']];
         if ($object_id) {
             $router_options['id'] = $object_id;
         }
@@ -36,7 +60,10 @@ class MvcFormHelper extends MvcHelper {
         return $html;
     }
 
-    public function end($label='Submit') {
+    /**
+     * @param string $label
+     */
+    public function end($label='Submit'): string {
         $html = "";
         // Allows the omission of Submit button from end of form if $label == false. Useful for using custom submit buttons with more specific stylings etc..
         if ($label) {
@@ -44,146 +71,171 @@ class MvcFormHelper extends MvcHelper {
             $html = '<div><input type="submit" value="'.$this->esc_attr($label).'"'.$class.' /></div>';
         }
 
-        $html .= '</form>';
-
-        return $html;
+        return $html . '</form>';
     }
 
     // Generalized method that chooses the appropriate input type based on the SQL type of the field
-    public function input($field_name, $options=array()) {
+    /**
+     * @param array $options
+     */
+    public function input(string $field_name, $options=[]) : string {
         if (!empty($this->schema[$field_name])) {
             $schema = $this->schema[$field_name];
             $type = $this->get_type_from_sql_schema($schema);
-            $defaults = array(
+            $defaults = [
                 'type' => $type,
                 'label' => __(MvcInflector::titleize($schema['field']), $this->plugin_name),
-                'value' => !isset($this->object->$field_name) ? '' : $this->object->$field_name
-            );
+                'value' => $this->object->$field_name ?? ''
+            ];
             if ($type == 'checkbox') {
                 unset($defaults['value']);
             }
             $options = array_merge($defaults, $options);
             $options['type'] = empty($options['type']) ? 'text' : $options['type'];
-            $html = $this->{$options['type'].'_input'}($field_name, $options);
-            return $html;
+            return $this->{$options['type'].'_input'}($field_name, $options);
         } else {
             MvcError::fatal('Field "'.$field_name.'" not found for use in a form input.');
             return '';
         }
     }
 
-    public function file_input($field_name, $options=array()) {
-        $defaults = array(
+    /**
+     * @param string $field_name
+     * @param array $options
+     */
+    public function file_input($field_name, $options=[]): string {
+        $defaults = [
             'id' => $this->input_id($field_name),
             'name' => $this->input_name($field_name),
             'type' => 'file'
-        );
+        ];
         $options = array_merge($defaults, $options);
         $attributes_html = self::attributes_html($options, 'input');
-        $html = $this->before_input($field_name, $options);
+        $html = $this->before_input($options);
         $html .= '<input'.$attributes_html.' />';
-        $html .= $this->after_input($field_name, $options);
-        return $html;
+        return $html . $this->after_input($options);
     }
 
-    public function url_input($field_name, $options=array()) {
-        $defaults = array(
+    /**
+     * @param string $field_name
+     * @param array $options
+     */
+    public function url_input($field_name, $options=[]): string {
+        $defaults = [
             'id' => $this->input_id($field_name),
             'name' => $this->input_name($field_name),
             'type' => 'url'
-        );
+        ];
         $options = array_merge($defaults, $options);
         $attributes_html = self::attributes_html($options, 'input');
-        $html = $this->before_input($field_name, $options);
+        $html = $this->before_input($options);
         $html .= '<input'.$attributes_html.' />';
-        $html .= $this->after_input($field_name, $options);
-        return $html;
+        return $html . $this->after_input($options);
     }
 
-    public function email_input($field_name, $options=array()) {
-        $defaults = array(
+    /**
+     * @param string $field_name
+     * @param array $options
+     */
+    public function email_input($field_name, $options=[]): string {
+        $defaults = [
             'id' => $this->input_id($field_name),
             'name' => $this->input_name($field_name),
             'type' => 'email'
-        );
+        ];
         $options = array_merge($defaults, $options);
         $attributes_html = self::attributes_html($options, 'input');
-        $html = $this->before_input($field_name, $options);
+        $html = $this->before_input($options);
         $html .= '<input'.$attributes_html.' />';
-        $html .= $this->after_input($field_name, $options);
-        return $html;
+        return $html . $this->after_input($options);
     }
 
-    public function time_input($field_name, $options=array()) {
-        $defaults = array(
+    /**
+     * @param string $field_name
+     * @param array $options
+     */
+    public function time_input($field_name, $options=[]): string {
+        $defaults = [
             'id' => $this->input_id($field_name),
             'name' => $this->input_name($field_name),
             'type' => 'time'
-        );
+        ];
         $options = array_merge($defaults, $options);
         $attributes_html = self::attributes_html($options, 'input');
-        $html = $this->before_input($field_name, $options);
+        $html = $this->before_input($options);
         $html .= '<input'.$attributes_html.' />';
-        $html .= $this->after_input($field_name, $options);
-        return $html;
+        return $html . $this->after_input($options);
     }
 
-    public function date_input($field_name, $options=array()) {
-        $defaults = array(
+    /**
+     * @param string $field_name
+     * @param array $options
+     */
+    public function date_input($field_name, $options=[]): string {
+        $defaults = [
             'id' => $this->input_id($field_name),
             'name' => $this->input_name($field_name),
             'type' => 'date'
-        );
+        ];
         $options = array_merge($defaults, $options);
         $attributes_html = self::attributes_html($options, 'input');
-        $html = $this->before_input($field_name, $options);
+        $html = $this->before_input($options);
         $html .= '<input'.$attributes_html.' />';
-        $html .= $this->after_input($field_name, $options);
-        return $html;
+        return $html . $this->after_input($options);
     }
 
-    public function text_input($field_name, $options=array()) {
+    /**
+     * @param string $field_name
+     * @param array $options
+     */
+    public function text_input($field_name, $options=[]): string {
         $value = empty($this->object->{$field_name}) ? '' : $this->object->{$field_name};
-        $defaults = array(
+        $defaults = [
             'id' => $this->input_id($field_name),
             'name' => $this->input_name($field_name),
             'type' => 'text',
             'value' => $value
-        );
+        ];
 
         $options = array_merge($defaults, $options);
         $attributes_html = self::attributes_html($options, 'input');
-        $html = $this->before_input($field_name, $options);
+        $html = $this->before_input($options);
         $html .= '<input'.$attributes_html.' />';
-        $html .= $this->after_input($field_name, $options);
-        return $html;
+        return $html . $this->after_input($options);
     }
 
-    public function textarea_input($field_name, $options=array()) {
+    /**
+     * @param string $field_name
+     * @param array $options
+     */
+    public function textarea_input($field_name, $options=[]): string {
         $value = empty($this->object->{$field_name}) ? '' : $this->object->{$field_name};
-        $defaults = array(
+        $defaults = [
             'id' => $this->input_id($field_name),
             'name' => $this->input_name($field_name),
             'value' => $value
-        );
+        ];
         $options = array_merge($defaults, $options);
         $attributes_html = self::attributes_html($options, 'textarea');
-        $textarea_content = !empty($options['value']) ? $options['value'] : '';
-        $html = $this->before_input($field_name, $options);
+        $textarea_content = empty($options['value']) ? '' : $options['value'];
+        $html = $this->before_input($options);
         $html .= '<textarea'.$attributes_html.'>'.$textarea_content.'</textarea>';
-        $html .= $this->after_input($field_name, $options);
-        return $html;
+        return $html . $this->after_input($options);
     }
 
-    public function checkbox_input($field_name, $options=array()) {
-        $defaults = array(
+    /**
+     * @param string $field_name
+     * @param array $options
+     */
+    public function checkbox_input($field_name, $options=[]): string {
+        $defaults = [
             'id' => $this->input_id($field_name),
             'name' => $this->input_name($field_name),
             'type' => 'checkbox',
-            'checked' => !empty($this->object->$field_name) && $this->object->$field_name ? true : false,
+            'checked' => !empty($this->object->$field_name) && $this->object->$field_name,
             'value' => '1',
             'include_hidden_input' => true
-        );
+        ];
         $options = array_merge($defaults, $options);
         if (!$options['checked']) {
             unset($options['checked']);
@@ -191,50 +243,58 @@ class MvcFormHelper extends MvcHelper {
             $options['checked'] = 'checked';
         }
         $attributes_html = self::attributes_html($options, 'input');
-        $html = $this->before_input($field_name, $options);
+        $html = $this->before_input($options);
         if ($options['include_hidden_input']) {
             // Included to allow for a workaround to the issue of unchecked checkbox fields not being sent by clients
             $html .= '<input type="hidden" name="'.$this->esc_attr($options['name']).'" value="0" />';
         }
         $html .= '<input'.$attributes_html.' />';
-        $html .= $this->after_input($field_name, $options);
-        return $html;
+        return $html . $this->after_input($options);
     }
 
-    public function hidden_input($field_name, $options=array()) {
+    /**
+     * @param string $field_name
+     * @param array $options
+     */
+    public function hidden_input($field_name, $options=[]): string {
 
     	$value = empty($this->object->{$field_name}) ? '' : $this->object->{$field_name};
 
-        $defaults = array(
+        $defaults = [
             'id' => $this->input_id($field_name),
             'name' => $this->input_name($field_name),
             'type' => 'hidden',
             'value' => $value
-        );
+        ];
         $options = array_merge($defaults, $options);
         $attributes_html = self::attributes_html($options, 'input');
-        $html = '<input'.$attributes_html.' />';
-        return $html;
+        return '<input'.$attributes_html.' />';
     }
 
-    public function password_input($field_name, $options=array()) {
-        $defaults = array(
+    /**
+     * @param string $field_name
+     * @param array $options
+     */
+    public function password_input($field_name, $options=[]): string {
+        $defaults = [
             'id' => $this->input_id($field_name),
             'name' => $this->input_name($field_name),
             'type' => 'password'
-        );
+        ];
         $options = array_merge($defaults, $options);
         $attributes_html = self::attributes_html($options, 'input');
-        $html = $this->before_input($field_name, $options);
+        $html = $this->before_input($options);
         $html .= '<input'.$attributes_html.' />';
-        $html .= $this->after_input($field_name, $options);
-        return $html;
+        return $html . $this->after_input($options);
     }
 
-    public function editor($field_name, array $options = array()) {
+    /**
+     * @param string $field_name
+     */
+    public function editor($field_name, array $options = []): string|false {
         $id = $this->input_id($field_name);
 
-        $defaults = array(
+        $defaults = [
             'id' => $id,
             'name' => $this->input_name($field_name),
             'label' => __(MvcInflector::titleize($field_name), $this->plugin_name),
@@ -245,74 +305,84 @@ class MvcFormHelper extends MvcHelper {
             'minimal' => false,
             'statusbar' => true,
             'quicktags' => true
-        );
+        ];
         $options = array_merge($defaults, $options);
 
         ob_start();
 
-        if (!empty($options['label']))
+        if (!empty($options['label'])) {
             echo '<label for="' . $id . '">' . $options['label'] . '</label>';
+        }
 
-        wp_editor($options['content'], $id, array(
+        wp_editor((string) ($options['content'] ?? ''), $id, [
             'editor_class' => $options['required'],
             'media_buttons' => $options['media_buttons'],
             'textarea_name' => $options['name'],
             'textarea_rows' => $options['rows'],
             'teeny' => $options['minimal'],
-            'tinymce' => array(
+            'tinymce' => [
                 'statusbar' => $options['statusbar']
-            ),
+            ],
             'editor_css' => $options['editor_css'],
             'quicktags' => $options['quicktags'],
             'wpautop' => false
-        ));
+        ]);
 
         return ob_get_clean();
     }
 
-    public function select($field_name, $options=array()) {
-        $html = $this->before_input($field_name, $options);
+    /**
+     * @param string $field_name
+     * @param array $options
+     */
+    public function select($field_name, $options=[]): string {
+        $html = $this->before_input($options);
         $html .= $this->select_tag($field_name, $options);
-        $html .= $this->after_input($field_name, $options);
-        return $html;
+        return $html . $this->after_input($options);
     }
 
-    function select_from_model($field_name, MvcModel $model, $find_options = array(), $select_options = array()) {
+    /**
+     * @param array $find_options
+     * @param array $select_options
+     */
+    function select_from_model(string $field_name, MvcModel $model, $find_options = [], $select_options = []): string {
 
-    	$default_find_options = array(
-    			'selects' => array($model->primary_key, $model->display_field),
+        $default_find_options = [
+                'selects' => [$model->primary_key, $model->display_field],
     			'order' => $model->display_field
-    	);
+        ];
 
     	$find_options = array_merge($default_find_options, $find_options);
 
     	$values =  $model->find($find_options);
 
-    	$key = $value->__id;
-    	$value = $value->__name;
-
-    	$default_options = array(
+        $default_options = [
     			'id' => $this->model_name.'_'.$field_name.'_select',
     			'name' => 'data['.$this->model_name.']['.$field_name.']',
     			'label' => __(MvcInflector::titleize($field_name), $this->plugin_name),
     			'empty' => true,
     			'value' => empty($this->object->$field_name) ? '' : $this->object->$field_name,
     			'options' => $values
-    	);
+        ];
 
     	$select_options = array_merge($default_options, $select_options);
 
     	return $this->select($default_options['name'], $select_options);
     }
 
-    public function select_tag($field_name, $options=array()) {
-        $defaults = array(
+    /**
+     * @param (mixed|null)[] $options
+     *
+     * @param string $field_name
+     */
+    public function select_tag($field_name, $options=[]): string {
+        $defaults = [
             'empty' => false,
             'value' => empty($this->object->{$field_name}) ? '' : $this->object->{$field_name}
-        );
+        ];
 
         $options = array_merge($defaults, $options);
-        $options['options'] = empty($options['options']) ? array() : $options['options'];
+        $options['options'] = empty($options['options']) ? [] : $options['options'];
         $options['name'] = $this->input_name($field_name);
         $attributes_html = self::attributes_html($options, 'select');
         $html = '<select'.$attributes_html.'>';
@@ -333,79 +403,87 @@ class MvcFormHelper extends MvcHelper {
 
             $html .= '<option value="'.$this->esc_attr($key).'"'.$selected_attribute.'>'.$value.'</option>';
         }
-        $html .= '</select>';
-        return $html;
+        return $html . '</select>';
     }
 
-    public function button($text, $options=array()) {
-        $defaults = array(
+    /**
+     * @param array $options
+     */
+    public function button(string $text, $options=[]): string {
+        $defaults = [
             'id' => $this->input_id($text),
             'type' => 'button',
             'class' => 'button'
-        );
+        ];
         $options = array_merge($defaults, $options);
         $attributes_html = self::attributes_html($options, 'input');
-        $html = '<button'.$attributes_html.'>'.$text.'</button>';
-        return $html;
+        return '<button'.$attributes_html.'>'.$text.'</button>';
     }
 
 
-    public function belongs_to_dropdown($model_name, $select_options, $options=array()) {
+    /**
+     * @param array $options
+     */
+    public function belongs_to_dropdown(string $model_name, array $select_options, $options=[]): string {
 
-        if (!empty($this->model->associations[$model_name])) {
-            $foreign_key = $this->model->associations[$model_name]['foreign_key'];
+        $model = $this->require_model();
+        if (!empty($model->associations[$model_name])) {
+            $foreign_key = $model->associations[$model_name]['foreign_key'];
         } else {
             $foreign_key = MvcInflector::underscore($model_name).'_id';
         }
 
         $value = empty($this->object->{$foreign_key}) ? '' : $this->object->{$foreign_key};
 
-        $defaults = array(
+        $defaults = [
             'id' => $this->model_name.'_'.$model_name.'_select',
             'name' => $foreign_key,
             'label' => __(MvcInflector::titleize($model_name), $this->plugin_name),
             'value' => $value,
             'options' => $select_options,
             'empty' => true
-        );
+        ];
         $options = array_merge($defaults, $options);
         $select_options = $options;
         $select_options['label'] = null;
         $select_options['before'] = null;
         $select_options['after'] = null;
 
-        $field_name = $options['name'];
+        $field_name = (string) $options['name'];
 
-        $html = $this->before_input($field_name, $options);
+        $html = $this->before_input($options);
         $html .= $this->select_tag($field_name, $select_options);
-        $html .= $this->after_input($field_name, $options);
 
-        return $html;
+        return $html . $this->after_input($options);
     }
 
-    public function has_many_dropdown($model_name, $select_options, $options=array(), $associated_objects=false) {
-        $defaults = array(
+    /**
+     * @param array $options
+     * @param array|false $associated_objects
+     */
+    public function has_many_dropdown(string $model_name, array $select_options, $options=[], $associated_objects=false): string {
+        $defaults = [
             'select_id' => $this->model_name.'_'.$model_name.'_select',
             'select_name' => $this->model_name.'_'.$model_name.'_select',
             'list_id' => $this->model_name.'_'.$model_name.'_list',
             'ids_input_name' => 'data['.$this->model_name.']['.$model_name.'][ids]',
             'label' => __(MvcInflector::pluralize(MvcInflector::titleize($model_name)), $this->plugin_name),
             'options' => $select_options
-        );
+        ];
         $options = array_merge($defaults, $options);
 
         $select_options = $options;
         $select_options['id'] = $select_options['select_id'];
 
-        $html = $this->before_input($options['select_name'], $select_options);
+        $html = $this->before_input($select_options);
         $html .= $this->select_tag($options['select_name'], $select_options);
 
         // Fetch all associated objects.
         // If there aren't any, return empty array
         if($associated_objects === false){
-            $associated_objects = isset($this->object->{MvcInflector::tableize($model_name)}) ? $this->object->{MvcInflector::tableize($model_name)} : '';
+            $associated_objects = $this->object->{MvcInflector::tableize($model_name)} ?? '';
         }
-        $associated_objects = empty($associated_objects) ? array() : $associated_objects;
+        $associated_objects = empty($associated_objects) ? [] : $associated_objects;
 
         // An empty value is necessary to ensure that data with name $options['ids_input_name'] is submitted; otherwise,
         // if no association objects were selected the save() method wouldn't know that this association data is being
@@ -451,16 +529,18 @@ class MvcFormHelper extends MvcHelper {
             </script>
 
         ';
-        $html .= $this->after_input($options['select_name'], $select_options);
 
-        return $html;
+        return $html . $this->after_input($select_options);
 
     }
 
-    private function before_input($field_name, $options) {
-        $defaults = array(
+    /**
+     * @param array $options
+     */
+    private function before_input($options): string {
+        $defaults = [
             'before' => ($this->is_in_admin_table) ? '<tr>' : '<div>',
-        );
+        ];
         $options = array_merge($defaults, $options);
         $html = $options['before'];
         if (!empty($options['label'])) {
@@ -472,24 +552,33 @@ class MvcFormHelper extends MvcHelper {
         return $html;
     }
 
-    private function after_input($field_name, $options) {
-        $defaults = array(
+    /**
+     * @param array $options
+     */
+    private function after_input($options) : ?string {
+        $defaults = [
             'after' => ($this->is_in_admin_table) ? '</td></tr>' : '</div>',
-        );
+        ];
         $options = array_merge($defaults, $options);
-        $html = $options['after'];
-        return $html;
+        return $options['after'];
     }
 
-    private function input_id($field_name) {
+    /**
+     * @param string $field_name
+     */
+    private function input_id(string|int|null $field_name): string {
         return $this->model_name.MvcInflector::camelize($field_name);
     }
 
-    private function input_name($field_name) {
-        return !empty($this->model_name) ? 'data[' . $this->model_name . '][' . MvcInflector::underscore($field_name) . ']' : 'data[' . MvcInflector::underscore($field_name) . ']';
+    /**
+     * @param string $field_name
+     *
+     */
+    private function input_name($field_name): string {
+        return empty($this->model_name) ? 'data[' . MvcInflector::underscore($field_name) . ']' : 'data[' . $this->model_name . '][' . MvcInflector::underscore($field_name) . ']';
     }
 
-    private function get_type_from_sql_schema($schema) {
+    private function get_type_from_sql_schema(array $schema): ?string {
         switch($schema['type']) {
             case 'varchar':
                 return 'text';
@@ -500,14 +589,15 @@ class MvcFormHelper extends MvcHelper {
         if ($schema['type'] == 'tinyint' && $schema['length'] == '1') {
             return 'checkbox';
         }
+        return null;
     }
 
-	public function open_admin_table() {
+	public function open_admin_table(): string {
 		$this->is_in_admin_table = true;
 		return '<table class="form-table"><tbody>';
 	}
 
-	public function close_admin_table() {
+	public function close_admin_table(): string {
 		$this->is_in_admin_table = false;
 		return '</tbody></table>';
 	}

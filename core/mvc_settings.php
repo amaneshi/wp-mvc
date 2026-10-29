@@ -1,23 +1,38 @@
 <?php
 
+/** @psalm-consistent-constructor */
 class MvcSettings {
 
-    public $name = null;
-    public $title = null;
-    public $key = null;
-    public $settings = null;
+    /**
+     * @var class-string<\MvcSettings>
+     */
+    public $name;
+
+    /**
+     * @var string
+     */
+    public $title;
+    /**
+     * @var string
+     */
+    public $key;
+
+    public array $settings = [];
     
     function __construct() {
-        $this->name = get_class($this);
+        $this->name = static::class;
         $this->title = MvcInflector::titleize($this->name);
         $this->key = 'mvc_'.MvcInflector::underscore($this->name);
         $this->init_settings();
     }
     
+    /**
+     * @return void
+     */
     public function description() {
     }
 
-    public function page() {
+    public function page(): void {
         echo '<div>';
         echo '<h2>'.$this->title.'</h2>';
         echo '<form action="options.php" method="post">';
@@ -28,14 +43,17 @@ class MvcSettings {
         echo '</div>';
     }
     
-    public function display_field($setting_key) {
+    /**
+     * @param string $setting_key
+     */
+    public function display_field($setting_key): void {
         $setting = $this->settings[$setting_key];
         $options = get_option($this->key);
-        $value = isset($options[$setting_key]) ? $options[$setting_key] : null;
+        $value = $options[$setting_key] ?? null;
         if (is_null($value)) {
             if (!empty($setting['default'])) {
                 $value = $setting['default'];
-            } else if (!empty($setting['default_method'])) {
+            } elseif (!empty($setting['default_method'])) {
                 $value = $this->{$setting['default_method']}();
             }
         }
@@ -43,19 +61,19 @@ class MvcSettings {
         if ($setting['type'] == 'checkbox') {
             $input_value = '1';
         }
-        $input_options = array(
+        $input_options = [
             'id' => $setting['key'],
             'name' => $this->key.'['.$setting['key'].']',
             'type' => $setting['type'],
             'value' => $input_value
-        );
+        ];
         if ($setting['type'] == 'checkbox' && $value) {
             $input_options['checked'] = 'checked';
         }
         if ($setting['type'] == 'select') {
             if ($setting['options']) {
                 $input_options['options'] = $setting['options'];
-            } else if ($setting['options_method']) {
+            } elseif ($setting['options_method']) {
                 $input_options['options'] = $this->{$setting['options_method']}();
             }
         }
@@ -63,7 +81,7 @@ class MvcSettings {
         echo $html;
     }
     
-    public function validate_fields($inputs) {
+    public function validate_fields(array $inputs): array {
         foreach ($inputs as $setting_key => $value) {
             if (method_exists($this, 'validate_field_'.$setting_key)) {
                 $inputs[$setting_key] = $this->{'validate_field_'.$setting_key}($setting_key, $value);
@@ -74,17 +92,25 @@ class MvcSettings {
         return $inputs;
     }
     
-    public function validate_field($setting_key, $value) {
+    /**
+     * @param (int|string) $setting_key
+     *
+     * @param mixed $value
+     */
+    public function validate_field($setting_key, $value) : mixed {
         return $value;
     }
     
+    /**
+     * @return void
+     */
     protected function init_settings() {
-        if (empty($this->settings)) {
-            $this->settings = array();
+        if ($this->settings === []) {
+            $this->settings = [];
         }
-        $settings = array();
+        $settings = [];
         foreach ($this->settings as $key => $setting) {
-            $defaults = array(
+            $defaults = [
                 'key' => $key,
                 'type' => 'text',
                 'label' => MvcInflector::titleize($key),
@@ -94,25 +120,26 @@ class MvcSettings {
                 'default_method' => null,
                 'options' => null,
                 'options_method' => null
-            );
+            ];
             $setting = array_merge($defaults, $setting);
             $settings[$key] = $setting;
         }
         $this->settings = $settings;
     }
 
-    public function __call($method_name, $arguments) {
-        if (substr($method_name, 0, 14) == 'display_field_') {
+    public function __call(string $method_name, array $arguments) {
+        if (str_starts_with($method_name, 'display_field_')) {
             $setting_key = substr($method_name, 14);
             $this->display_field($setting_key);
             return true;
         }
-        if (substr($method_name, 0, 15) == 'validate_field_') {
+        if (str_starts_with($method_name, 'validate_field_')) {
             $setting_key = substr($method_name, 15);
             $this->validate_field($setting_key, $arguments[0]);
             return true;
         }
-        MvcError::fatal('Undefined method: '.get_class($this).'::'.$method_name.'.');
+        MvcError::fatal('Undefined method: '.static::class.'::'.$method_name.'.');
+        return null;
     }
 
 }

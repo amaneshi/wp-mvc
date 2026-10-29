@@ -2,22 +2,27 @@
 
 class MvcComment extends MvcModel {
 
-    var $table = '{prefix}comments';
-    var $primary_key = 'comment_ID';
-    var $order = 'comment_date DESC';
-    var $display_field = 'comment_content';
-    var $belongs_to = array(
-        'Post' => array(
+    public string $table = '{prefix}comments';
+
+    public string $primary_key = 'comment_ID';
+
+    public array|string|null $order = 'comment_date DESC';
+
+    public ?string $display_field = 'comment_content';
+
+    public ?array $belongs_to = [
+        'Post' => [
             'class' => 'MvcPost',
             'foreign_key' => 'comment_post_ID'
-        )
-    );
-    var $has_many = array(
-        'Meta' => array(
+        ]
+    ];
+
+    public ?array $has_many = [
+        'Meta' => [
             'class' => 'MvcCommentMeta',
             'foreign_key' => 'comment_id'
-        )
-    );
+        ]
+    ];
     
 }
 

@@ -2,20 +2,24 @@
 
 class MvcPost extends MvcModel {
 
-    var $table = '{prefix}posts';
-    var $primary_key = 'ID';
-    var $order = 'post_date DESC';
-    var $display_field = 'post_title';
-    var $has_many = array(
-        'Comment' => array(
+    public string $table = '{prefix}posts';
+
+    public string $primary_key = 'ID';
+
+    public array|string|null $order = 'post_date DESC';
+
+    public ?string $display_field = 'post_title';
+
+    public ?array $has_many = [
+        'Comment' => [
             'class' => 'MvcComment',
             'foreign_key' => 'comment_post_ID'
-        ),
-        'Meta' => array(
+        ],
+        'Meta' => [
             'class' => 'MvcPostMeta',
             'foreign_key' => 'post_id'
-        )
-    );
+        ]
+    ];
     
 }
 

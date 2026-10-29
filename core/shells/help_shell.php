@@ -6,15 +6,18 @@
  */
 class HelpShell extends MvcShell {
 
-    protected function get_shell_meta($name) {
-        $exclude_methods = array(
+    /**
+     * @param string $name
+     */
+    protected function get_shell_meta($name): \stdClass {
+        $exclude_methods = [
             '__construct',
             '__call',
             'init',
             'out',
             'nl',
             'hr'
-        );
+        ];
         
         $name = MvcInflector::underscore($name);
 
@@ -23,7 +26,7 @@ class HelpShell extends MvcShell {
         $shell->shell_name = $name.'_shell';
         $shell->class_name = MvcInflector::camelize($shell->shell_name);
         $shell->title = MvcInflector::titleize($shell->name);
-        $shell->methods = array();
+        $shell->methods = [];
 
         $shell_path = 'shells/'.$shell->shell_name.'.php';
 
@@ -33,9 +36,13 @@ class HelpShell extends MvcShell {
             throw new InvalidArgumentException($shell->shell_name." could not be found.\n");
         }
 
-        $result = $this->file_includer->require_first_app_file_or_core_file($shell_path);
+        $this->file_includer->require_first_app_file_or_core_file($shell_path);
 
-        $class = new ReflectionClass($shell->class_name);
+        $class_name = $shell->class_name;
+        if (!class_exists($class_name)) {
+            throw new InvalidArgumentException('Shell class could not be loaded: ' . $class_name);
+        }
+        $class = new ReflectionClass($class_name);
         $methods = $class->getMethods(ReflectionMethod::IS_PUBLIC);
 
         $shell->doc = $this->parse_doc_block($class->getDocComment());
@@ -66,25 +73,28 @@ class HelpShell extends MvcShell {
         return $shell;
     }
 
-    protected function get_available_shells() {
-        $exclude = array(
+    /**
+     * @return array<array-key, list<string>>
+     */
+    protected function get_available_shells(): array {
+        $exclude = [
             'mvc_shell.php',
             'mvc_shell_dispatcher.php'
-        );
+        ];
 
         $pluginAppPaths = MvcConfiguration::get('PluginAppPaths');
         $pluginAppPaths['core'] = MVC_CORE_PATH;
 
-        $shells = array();
+        $shells = [];
 
         foreach ($pluginAppPaths as $plugin => $path) {
-            $path = $path.'/shells';
+            $path .= '/shells';
 
             $files = $this->file_includer->get_php_files_in_directory($path);
 
             $key = MvcInflector::camelize($plugin);
 
-            $shells[$plugin] = array();
+            $shells[$plugin] = [];
 
             foreach ($files as $file) {
                 if (!in_array($file, $exclude)) {
@@ -103,7 +113,8 @@ class HelpShell extends MvcShell {
      * 
      * @param mixed $args 
      */
-    public function main($args) {
+    #[\Override]
+    public function main($args): void {
         $shells = $this->get_available_shells();
         $this->out('Available Shells:');
 
@@ -118,16 +129,17 @@ class HelpShell extends MvcShell {
         foreach ($shells as $plugin => $shells) {
 
             $plugin_label = MvcInflector::camelize(MvcInflector::underscore($plugin));
+            $counter = count($shells);
 
-            for ($i = 0; $i < count($shells); $i++) {
+            for ($i = 0; $i < $counter; $i++) {
                 if ($i > 0) {
                     $plugin_label = ' ';
                 }
                 $shell_name = MvcInflector::camelize($shells[$i]);
-                $table->addRow(array(
+                $table->addRow([
                     $plugin_label,
                     Console_Color::convert('%_'.$shell_name.'%n')
-                ));
+                ]);
             }
 
             $table->addSeparator();
@@ -139,10 +151,13 @@ class HelpShell extends MvcShell {
         $this->out("\n\twpmvc help shell <name_of_shell>");
     }
 
-    protected function parse_doc_block($text) {
-        $doc = preg_replace('/^\\s*(\\/|\\*+)[\\*]*([\\/]|[\\s{1}]\\@.*|[\\ ]*|)/um', '', $text);
+    /**
+     * @param false|string $text
+     */
+    protected function parse_doc_block($text): string {
+        $doc = preg_replace('/^\\s*(\\/|\\*+)[\\*]*([\\/]|[\\s{1}]\\@.*|[\\ ]*|)/um', '', (string) $text);
 
-        return trim($doc);
+        return trim((string) $doc);
     }
 
     /**
@@ -152,10 +167,9 @@ class HelpShell extends MvcShell {
      * wpmvc Help Shell Generate
      * wpmvc Help Shell Generate Scaffold
      * @param mixed $args
-     * @return null 
      */
-    public function shell($args) {
-        list($name, $method) = $args;
+    public function shell($args): void {
+        [$name, $method] = $args;
 
         if (empty($name)) {
             $this->out('No shell given');
@@ -190,10 +204,10 @@ class HelpShell extends MvcShell {
         }
         
         if (!empty($method) && !empty($shell->methods[$method])) {
-            $table->addRow(array(Console_Color::convert('%9'.$method.'%n'), $shell->methods[$method]));
+            $table->addRow([Console_Color::convert('%9'.$method.'%n'), $shell->methods[$method]]);
         } else {
             foreach ($shell->methods as $method => $doc) {
-                $table->addRow(array(Console_Color::convert('%9'.$method.'%n'), $doc));
+                $table->addRow([Console_Color::convert('%9'.$method.'%n'), $doc]);
                 $table->addSeparator();
             }
         }

@@ -1,13 +1,20 @@
 <?php
 
+/** @psalm-consistent-constructor */
 class MvcShell {
 
-    protected $core_path = '';
-    protected $file_includer = null;
+    /**
+     * @var string
+     *
+     */
+    protected $core_path = MVC_CORE_PATH;
+    protected \MvcFileIncluder $file_includer;
 
-    function __construct($args=array()) {
+    /**
+     * @param array $args
+     */
+    function __construct($args=[]) {
     
-        $this->core_path = MVC_CORE_PATH;
         $this->file_includer = new MvcFileIncluder();
         
         $this->file_includer->require_core_file('console/color.php');
@@ -20,33 +27,52 @@ class MvcShell {
     /**
      * Empty callback method. This can be overwritten by descendant classes to 
      * add custom functionality during shell initialization
-     * 
-     * @param type $args 
+     *
+     * @param array $args
+     *
+     * @return void
      */
-    protected function init($args=array()) {
+    protected function init($args=[]) {
     }
 
-    public function main($args) {
+    /**
+     * @param array $args
+     */
+    public function main($args): void {
         $this->out('To handle commands without any arguments, please define a main() method in the shell.');
     }
     
-    public function out($string, $append_new_line = true) {
+    /**
+     * @param null|string $string
+     * @param bool $append_new_line
+     */
+    public function out($string, $append_new_line = true): void {
         echo $string;
         if ($append_new_line) {
             echo "\n";
         }
     }
     
-    public function nl($multiplier = 1) {
+    /**
+     * @param int $multiplier
+     *
+     */
+    public function nl($multiplier = 1): void {
         echo str_repeat("\n", $multiplier);
     }
     
-    public function hr($length = 40) {
+    /**
+     * @param int $length
+     */
+    public function hr($length = 40): void {
         echo str_repeat('-', $length)."\n";
     }
     
-    protected function load_helper($helper_name) {
-        $helper_name = $helper_name.'Helper';
+    /**
+     * @return void
+     */
+    protected function load_helper(string $helper_name) {
+        $helper_name .= 'Helper';
         $helper_underscore = MvcInflector::underscore($helper_name);
         
         $this->file_includer->require_first_app_file_or_core_file('helpers/'.$helper_underscore.'.php');
@@ -58,6 +84,10 @@ class MvcShell {
         }
     }
     
+    /**
+     * @return void
+     * @param string $model_name
+     */
     protected function load_model($model_name) {
         $model_underscore = MvcInflector::underscore($model_name);
         
@@ -68,6 +98,10 @@ class MvcShell {
         }
     }
     
+    /**
+     * @return void
+     * @param array $model_names
+     */
     protected function load_models($model_names) {
         foreach ($model_names as $model_name) {
             $this->load_model($model_name);

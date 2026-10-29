@@ -2,8 +2,8 @@
 
 class MvcPluginLoader {
     
-    protected $wpdb = null;
-    protected $file_includer = null;
+    protected wpdb $wpdb;
+    protected \MvcFileIncluder $file_includer;
     
     function __construct() {
         global $wpdb;
@@ -12,21 +12,33 @@ class MvcPluginLoader {
         $this->init();
     }
     
+    /**
+     * @return void
+     */
     public function init() {
     }
     
-    public function activate_app($file_path) {
+    /**
+     * @param string $file_path
+     *
+     */
+    public function activate_app($file_path): void {
         $plugin = $this->get_plugin_name_from_file_path($file_path);
         $this->add_plugin($plugin);
         $this->init_settings_defaults($file_path);
         $this->load_plugin_routes();
     }
     
-    public function deactivate_app($file_path) {
+    public function deactivate_app(string $file_path): void {
         $plugin = $this->get_plugin_name_from_file_path($file_path);
         $this->remove_plugin($plugin);
     }
     
+    /**
+     * @param null|string $plugin
+     *
+     * @return bool
+     */
     protected function add_plugin($plugin) {
         $added = false;
         $plugins = $this->get_plugins();
@@ -38,6 +50,11 @@ class MvcPluginLoader {
         return $added;
     }
     
+    /**
+     * @param null|string $plugin
+     *
+     * @return bool
+     */
     protected function remove_plugin($plugin) {
         $removed = false;
         $plugins = $this->get_plugins();
@@ -54,51 +71,60 @@ class MvcPluginLoader {
         return $removed;
     }
     
+    /**
+     * @return void
+     * @param array $plugins
+     */
     protected function update_registered_plugins($plugins) {
         $plugins = $this->filter_nonexistent_plugins($plugins);
         update_option('mvc_plugins', $plugins);
     }
     
-    protected function filter_nonexistent_plugins($plugins) {
+    protected function filter_nonexistent_plugins(array $plugins): array {
         foreach ($plugins as $key => $plugin) {
             if (!is_dir(WP_PLUGIN_DIR.'/'.$plugin)) {
                 unset($plugins[$key]);
             }
         }
-        $plugins = array_values($plugins);
-        return $plugins;
+        return array_values($plugins);
     }
     
-    protected function get_plugin_name_from_file_path($file_path) {
+    protected function get_plugin_name_from_file_path(string $file_path): ?string {
         $basename = plugin_basename($file_path);
         $basename_split = explode('/', $basename);
-        if (!empty($basename_split[0])) {
+        if (isset($basename_split[0]) && ($basename_split[0] !== '' && $basename_split[0] !== '0')) {
             return $basename_split[0];
         }
         MvcError::fatal('A plugin name couldn\'t be derived from the file path "'.$file_path.'"');
+        return null;
     }
     
-    protected function get_plugins() {
-        $plugins = get_option('mvc_plugins', array());
-        return $plugins;
+    protected function get_plugins() : array {
+        return get_option('mvc_plugins', []);
     }
     
-    public function init_settings_defaults($file_path) {
+    /**
+     * @param string $file_path
+     */
+    public function init_settings_defaults($file_path): void {
         $app_directory = dirname($file_path).'/app/';
         $settings_directory = $app_directory.'settings/';
         $settings_files = $this->file_includer->require_php_files_in_directory($settings_directory);
         if (!empty($settings_files)) {
             foreach ($settings_files as $file_path) {
-                $settings_class = MvcInflector::class_name_from_filename(basename($file_path));
+                $settings_class = MvcInflector::class_name_from_filename(basename((string) $file_path));
+                if (!is_a($settings_class, MvcSettings::class, true)) {
+                    MvcError::fatal('Expected a MvcSettings implementation.');
+                }
                 $settings = new $settings_class();
                 $existing_values = get_option($settings->key);
                 if (!$existing_values) {
-                    $values = array();
+                    $values = [];
                     foreach ($settings->settings as $key => $setting) {
                         $value = null;
                         if (!empty($setting['default'])) {
                             $value = $setting['default'];
-                        } else if (!empty($setting['default_method'])) {
+                        } elseif (!empty($setting['default_method'])) {
                             $value = $this->{$setting['default_method']}();
                         }
                         $values[$key] = $value;
@@ -109,6 +135,9 @@ class MvcPluginLoader {
         }
     }
 
+    /**
+     * @return void
+     */
     protected function load_plugin_routes() {
         require_once MVC_PLUGIN_PATH.'core/loaders/mvc_public_loader.php';
         $public_loader = new MvcPublicLoader();

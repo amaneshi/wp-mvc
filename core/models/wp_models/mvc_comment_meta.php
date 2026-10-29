@@ -2,16 +2,20 @@
 
 class MvcCommentMeta extends MvcModel {
 
-    var $table = '{prefix}commentmeta';
-    var $primary_key = 'meta_id';
-    var $order = 'meta_key';
-    var $display_field = 'meta_key';
-    var $belongs_to = array(
-        'Comment' => array(
+    public string $table = '{prefix}commentmeta';
+
+    public string $primary_key = 'meta_id';
+
+    public array|string|null $order = 'meta_key';
+
+    public ?string $display_field = 'meta_key';
+
+    public ?array $belongs_to = [
+        'Comment' => [
             'class' => 'MvcComment',
             'foreign_key' => 'comment_id'
-        )
-    );
+        ]
+    ];
     
 }
 

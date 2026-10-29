@@ -39,45 +39,60 @@ class Console_ProgressBar {
     // properties {{{
     /**
      * Skeleton for use with sprintf
+     *
+     * @var string
      */
-    var $_skeleton;
+    public $_skeleton;
     /**
      * The bar gets filled with this
+     *
+     * @var string
      */
-    var $_bar;
+    public $_bar;
     /**
      * The width of the bar
      */
-    var $_blen;
+    public int $_blen = 0;
     /**
      * The total width of the display
      */
-    var $_tlen;
+    public int $_tlen = 0;
     /**
      * The position of the counter when the job is `done'
      */
-    var $_target_num;
+    public int|float $_target_num = 1;
     /**
      * Options, like the precision used to display the numbers
+     *
+     * @var (bool|float|int|mixed|string)[]
+     *
      */
-    var $_options = array();
+    public $_options = [];
     /**
      * Length to erase
      */
-    var $_rlen = 0;
+    public int $_rlen = 0;
     /**
      * When the progress started
+     *
+     * @var float|int|null
      */
-    var $_start_time = null;
-    var $_rate_datapoints = array();
+    public $_start_time;
+    public array $_rate_datapoints = [];
     /**
      * Time when the bar was last drawn
+     *
+     * @var float|int
      */
-    var $_last_update_time = 0.0;
+    public $_last_update_time = 0.0;
+
+    /**
+     * @var bool
+     */
+    public $_first = true;
     // }}}
-    
     // constructor() {{{
-    /** 
+    /**
      * Constructor, sets format and size
      *
      * See the reset() method for documentation.
@@ -89,15 +104,14 @@ class Console_ProgressBar {
      * @param float  The target number for the bar
      * @param array  Options for the progress bar
      * @see reset
-     */ 
-    function Console_ProgressBar($formatstring, $bar, $prefill, $width, 
-                                  $target_num, $options = array()) 
+     */
+    function __construct(string $formatstring, string $bar, string $prefill, int $width,
+                                  int|float $target_num, array $options = [])
     {
         $this->reset($formatstring, $bar, $prefill, $width, $target_num, 
                      $options);
     }
     // }}}
-
     // {{{ reset($formatstring, $bar, $prefill, $width, $target_num[, $options])
     /**
      * Re-sets format and size.
@@ -154,7 +168,7 @@ class Console_ProgressBar {
      *                        |       |  possible.
      *     fraction_pad       | ' '   |  Character to use when padding max and
      *                        |       |  current number to a fixed size.
-     *                        |       |  Senseful values are ' ' and '0', but 
+     *                        |       |  Senseful values are ' ' and '0', but
      *                        |       |  any are possible.
      *     width_absolute     | true  |  If the width passed as an argument
      *                        |       |  should mean the total size (true) or
@@ -165,10 +179,10 @@ class Console_ProgressBar {
      *                        |       |  problems with some terminal emulators,
      *                        |       |  for example Eterm.
      *     ansi_clear         | false |  If the bar should be cleared everytime
-     *     num_datapoints     | 5     |  How many datapoints to use to create 
-     *                        |       |  the estimated remaining time 
+     *     num_datapoints     | 5     |  How many datapoints to use to create
+     *                        |       |  the estimated remaining time
      *     min_draw_interval  | 0.0   |  If the last call to update() was less
-     *                        |       |  than this amount of seconds ago, 
+     *                        |       |  than this amount of seconds ago,
      *                        |       |  don't update.
      * </pre>
      *
@@ -178,10 +192,9 @@ class Console_ProgressBar {
      * @param int    The width of the display
      * @param float  The target number for the bar
      * @param array  Options for the progress bar
-     * @return bool
      */
-    function reset($formatstring, $bar, $prefill, $width, $target_num, 
-                   $options = array()) 
+    function reset(string $formatstring, string $bar, string $prefill, int $width, int|float $target_num,
+                   array $options = []): bool
     {
         if ($target_num == 0) {
             trigger_error("PEAR::Console_ProgressBar: Using a target number equal to 0 is invalid, setting to 1 instead");
@@ -189,7 +202,7 @@ class Console_ProgressBar {
         } else {
             $this->_target_num = $target_num;
         }
-        $default_options = array(
+        $default_options = [
             'percent_precision' => 2,
             'fraction_precision' => 0,
             'percent_pad' => ' ',
@@ -199,8 +212,8 @@ class Console_ProgressBar {
             'ansi_clear' => false,
             'num_datapoints' => 5,
             'min_draw_interval' => 0.0,
-        );
-        $intopts = array();
+        ];
+        $intopts = [];
         foreach ($default_options as $key => $value) {
             if (!isset($options[$key])) {
                 $intopts[$key] = $value;
@@ -211,20 +224,16 @@ class Console_ProgressBar {
         }
         $this->_options = $options = $intopts;
         // placeholder
-        $cur = '%2$\''.$options['fraction_pad']{0}.strlen((int)$target_num).'.'
+        $cur = '%2$\''.$options['fraction_pad'][0].strlen((string)(int)$target_num).'.'
                .$options['fraction_precision'].'f';
-        $max = $cur; $max{1} = 3;
+        $max = $cur; $max[1] = 3;
         // pre php-4.3.7 %3.2f meant 3 characters before . and two after
         // php-4.3.7 and later it means 3 characters for the whole number
-        if (version_compare(PHP_VERSION, '4.3.7', 'ge')) {
-            $padding = 4 + $options['percent_precision'];
-        } else {
-            $padding = 3;
-        }
-        $perc = '%4$\''.$options['percent_pad']{0}.$padding.'.'
+        $padding = version_compare(PHP_VERSION, '4.3.7', 'ge') ? 4 + $options['percent_precision'] : 3;
+        $perc = '%4$\''.$options['percent_pad'][0].$padding.'.'
                 .$options['percent_precision'].'f';
         
-        $transitions = array(
+        $transitions = [
             '%%' => '%%',
             '%fraction%' => $cur.'/'.$max,
             '%current%' => $cur,
@@ -233,7 +242,7 @@ class Console_ProgressBar {
             '%bar%' => '%1$s',
             '%elapsed%' => '%5$s',
             '%estimate%' => '%6$s',
-        );
+        ];
         
         $this->_skeleton = strtr($formatstring, $transitions);
 
@@ -247,7 +256,7 @@ class Console_ProgressBar {
             $blen = $width;
         }
 
-        $lbar = str_pad($bar, $blen, $bar{0}, STR_PAD_LEFT);
+        $lbar = str_pad($bar, $blen, $bar[0], STR_PAD_LEFT);
         $rbar = str_pad($prefill, $blen, substr($prefill, -1, 1));
 
         $this->_bar   = substr($lbar,-$blen).substr($rbar,0,$blen);
@@ -259,15 +268,14 @@ class Console_ProgressBar {
         return true;
     }
     // }}}
-    
     // {{{ update($current)
     /**
      * Updates the bar with new progress information
      *
      * @param int current position of the progress counter
-     * @return bool
+     * @param int|float $current
      */
-    function update($current)
+    function update($current): void
     {
         $time = $this->_fetchTime();
         $this->_addDatapoint($current, $time);
@@ -280,8 +288,7 @@ class Console_ProgressBar {
             $this->display($current);
             return;
         }
-        if ($time - $this->_last_update_time < 
-            $this->_options['min_draw_interval'] and $current != $this->_target_num) {
+        if ($time - $this->_last_update_time < $this->_options['min_draw_interval'] && $current != $this->_target_num) {
             return;
         }
         $this->erase();
@@ -289,7 +296,6 @@ class Console_ProgressBar {
         $this->_last_update_time = $time;
     }
     // }}}
-    
     // {{{ display($current)
     /**
      * Prints the bar. Usually, you don't need this method, just use update()
@@ -297,12 +303,12 @@ class Console_ProgressBar {
      * custom function (for whatever reason) to erase the bar, use this method.
      *
      * @param int current position of the progress counter
-     * @return bool
+     * @param int|float $current
      */
-    function display($current) 
+    function display($current): bool
     {
         $percent = $current / $this->_target_num;
-        $filled = round($percent * $this->_blen);
+        $filled = (int) round($percent * $this->_blen);
         $visbar = substr($this->_bar, $this->_blen - $filled, $this->_blen);
         $elapsed = $this->_formatSeconds(
             $this->_fetchTime() - $this->_start_time
@@ -312,29 +318,24 @@ class Console_ProgressBar {
             $visbar, $current, $this->_target_num, $percent * 100, $elapsed,
             $estimate
         );
-        // fix for php-versions where printf doesn't return anything
-        if (is_null($this->_rlen)) {
-            $this->_rlen = $this->_tlen;
-        // fix for php versions between 4.3.7 and 5.x.y(?)
-        } elseif ($this->_rlen < $this->_tlen) {
+        if ($this->_rlen < $this->_tlen) {
             echo str_repeat(' ', $this->_tlen - $this->_rlen);
             $this->_rlen = $this->_tlen;
         } 
         return true;
     }
     // }}}
-
     // {{{ erase($clear = false)
     /**
      * Erases a previously printed bar.
      *
      * @param bool if the bar should be cleared in addition to resetting the
      *             cursor position
-     * @return bool
+     * @param bool $clear
      */
-    function erase($clear = false) 
+    function erase($clear = false): void
     {
-        if ($this->_options['ansi_terminal'] and !$clear) {
+        if ($this->_options['ansi_terminal'] && !$clear) {
             if ($this->_options['ansi_clear']) {
                 echo "\x1b[2K\x1b[u"; // restore cursor position
             } else {
@@ -349,25 +350,20 @@ class Console_ProgressBar {
         }
     }
     // }}}
-
     // {{{ format_seconds()
     /**
      * Returns a string containing the formatted number of seconds
      *
      * @param float The number of seconds
-     * @return string
+     * @param float|int $seconds
      */
-    function _formatSeconds($seconds) 
+    function _formatSeconds($seconds): string
     {
         $hou = floor($seconds/3600);
         $min = floor(($seconds - $hou * 3600) / 60);
         $sec = $seconds - $hou * 3600 - $min * 60;
         if ($hou == 0) {
-            if (version_compare(PHP_VERSION, '4.3.7', 'ge')) {
-                $format = '%2$02d:%3$05.2f';
-            } else {
-                $format = '%2$02d:%3$02.2f';
-            }
+            $format = version_compare(PHP_VERSION, '4.3.7', 'ge') ? '%2$02d:%3$05.2f' : '%2$02d:%3$02.2f';
         } elseif ($hou < 100) {
             $format = '%02d:%02d:%02d';
         } else {
@@ -377,28 +373,29 @@ class Console_ProgressBar {
     }
     // }}}
 
-    function _fetchTime() {
+    function _fetchTime(): int|float {
         if (!function_exists('microtime')) {
             return time();
         }
-        if (version_compare(PHP_VERSION, '5.0.0', 'ge')) {
-            return microtime(true);
-        }
-        return array_sum(explode(' ', microtime()));
+        return microtime(true);
     }
 
-    function _addDatapoint($val, $time) {
+    /**
+     * @param float|int $time
+     * @param int|float $val
+     */
+    function _addDatapoint($val, $time): void {
         if (count($this->_rate_datapoints) 
             == $this->_options['num_datapoints']) {
             array_shift($this->_rate_datapoints);
         }
-        $this->_rate_datapoints[] = array(
+        $this->_rate_datapoints[] = [
             'time' => $time,
             'value' => $val,
-        );
+        ];
     }
 
-    function _generateEstimate() {
+    function _generateEstimate(): int|float {
         if (count($this->_rate_datapoints) < 2) {
             return 0.0;
         }

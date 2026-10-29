@@ -2,10 +2,21 @@
 
 class MvcModelRegistry {
 
-    var $__models = array();
+    public static function require_model(string $key): MvcModel {
+        $model = self::get_model($key);
+        if (!$model instanceof MvcModel) {
+            throw new LogicException('No MVC model registered for ' . $key);
+        }
+        return $model;
+    }
 
-    static function &get_instance() {
-        static $instance = array();
+    /**
+     * @var array
+     */
+    public $__models = [];
+
+    static function &get_instance() : MvcModelRegistry {
+        static $instance = [];
         if (!$instance) {
             $mvc_model_registry = new MvcModelRegistry();
             $instance[0] =& $mvc_model_registry;
@@ -13,26 +24,39 @@ class MvcModelRegistry {
         return $instance[0];
     }
 
-    static function &get_model($key) {
+    /**
+     * @param string $key
+     */
+    static function &get_model($key) : object|false {
+        /** @psalm-suppress UnsupportedReferenceUsage Preserved registry aliasing; covered by reference-contract regression tests. */
         $_this =& self::get_instance();
         $key = MvcInflector::camelize($key);
         $return = false;
         if (isset($_this->__models[$key])) {
+            /** @psalm-suppress UnsupportedPropertyReferenceUsage Preserved registry aliasing; covered by reference-contract regression tests. */
             $return =& $_this->__models[$key];
-        } else if (class_exists($key)) {
+        } elseif (class_exists($key)) {
             $_this->__models[$key] = new $key();
+            /** @psalm-suppress UnsupportedPropertyReferenceUsage Preserved registry aliasing; covered by reference-contract regression tests. */
             $return =& $_this->__models[$key];
         }
         return $return;
     }
 
-    static function &get_models() {
+    static function &get_models() : array {
+        /** @psalm-suppress UnsupportedReferenceUsage Preserved registry aliasing; covered by reference-contract regression tests. */
         $_this =& self::get_instance();
+        /** @psalm-suppress UnsupportedPropertyReferenceUsage Preserved registry aliasing; covered by reference-contract regression tests. */
         $return =& $_this->__models;
         return $return;
     }
     
-    static function add_model($key, &$model) {
+    /**
+     * @param object $model
+     * @param int|string $key
+     */
+    static function add_model($key, &$model): bool {
+        /** @psalm-suppress UnsupportedReferenceUsage Preserved registry aliasing; covered by reference-contract regression tests. */
         $_this =& self::get_instance();
         $key = MvcInflector::camelize($key);
         if (!isset($_this->__models[$key])) {

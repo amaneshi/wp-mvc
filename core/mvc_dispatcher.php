@@ -1,22 +1,27 @@
 <?php
 
+/** @psalm-no-seal-properties */
+#[\AllowDynamicProperties]
 class MvcDispatcher {
 
-    static function dispatch($options=array()) {
+    static function dispatch(array $options=[]) : mixed {
         
-        $controller_name = $options['controller'];
+        $controller_name = (string) $options['controller'];
         $action = $options['action'];
         $params = $options;
         
         $controller_class = MvcInflector::camelize($controller_name).'Controller';
         
+        if (!is_a($controller_class, MvcController::class, true)) {
+            MvcError::fatal('Expected a MvcController implementation.');
+        }
         $controller = new $controller_class();
         
         $controller->name = $controller_name;
         $controller->action = $action;
         $controller->init();
         
-        if (!is_callable(array($controller, $action))) {
+        if (!is_callable([$controller, $action])) {
             MvcError::fatal('A method for the action "'.$action.'" doesn\'t exist in "'.$controller_class.'"');
         }
         
@@ -34,7 +39,7 @@ class MvcDispatcher {
             $controller->set('this', $controller);
         }
         if (!empty($controller->before)) {
-            foreach ($controller->before as $method) {
+            foreach ((array) $controller->before as $method) {
                 $controller->{$method}();
             }
         }
@@ -60,7 +65,7 @@ class MvcDispatcher {
         $response = $controller->{$action}();
         
         if (!empty($controller->after)) {
-            foreach ($controller->after as $method) {
+            foreach ((array) $controller->after as $method) {
                 $controller->{$method}();
             }
         }
@@ -74,12 +79,15 @@ class MvcDispatcher {
     
     }
     
-    static function escape_params($params) {
+    /**
+     * @param mixed $params A request collection or scalar returned unchanged.
+     */
+    static function escape_params(mixed $params): mixed {
         if (is_array($params)) {
             foreach ($params as $key => $value) {
                 if (is_string($value)) {
                     $params[$key] = stripslashes($value);
-                } else if (is_array($value)) {
+                } elseif (is_array($value)) {
                     $params[$key] = self::escape_params($value);
                 }
             }
@@ -87,8 +95,8 @@ class MvcDispatcher {
         return $params;
     }
 
-    public function __call($method, $args) {
-        if (isset($this->$method) === true) {
+    public function __call(string $method, array $args) {
+        if (isset($this->$method)) {
             $function = $this->$method;
             $function();
         }

@@ -2,10 +2,21 @@
 
 class MvcSettingsRegistry {
 
-    var $__settings = array();
+    public static function require_settings(string $key): MvcSettings {
+        $settings = self::get_settings($key);
+        if (!$settings instanceof MvcSettings) {
+            throw new LogicException('No MVC settings registered for ' . $key);
+        }
+        return $settings;
+    }
 
-    static private function &get_instance() {
-        static $instance = array();
+    /**
+     * @var array
+     */
+    public $__settings = [];
+
+    static private function &get_instance() : MvcSettingsRegistry {
+        static $instance = [];
         if (!$instance) {
             $mvc_settings_registry = new MvcSettingsRegistry();
             $instance[0] =& $mvc_settings_registry;
@@ -13,20 +24,31 @@ class MvcSettingsRegistry {
         return $instance[0];
     }
 
-    static function &get_settings($key) {
+    /**
+     * @param int|string $key
+     */
+    static function &get_settings($key) : object|false {
+        /** @psalm-suppress UnsupportedReferenceUsage Preserved registry aliasing; covered by reference-contract regression tests. */
         $_this =& self::get_instance();
         $key = MvcInflector::camelize($key);
         $return = false;
         if (isset($_this->__settings[$key])) {
+            /** @psalm-suppress UnsupportedPropertyReferenceUsage Preserved registry aliasing; covered by reference-contract regression tests. */
             $return =& $_this->__settings[$key];
-        } else if (class_exists($key)) {
+        } elseif (class_exists($key)) {
             $_this->__settings[$key] = new $key();
+            /** @psalm-suppress UnsupportedPropertyReferenceUsage Preserved registry aliasing; covered by reference-contract regression tests. */
             $return =& $_this->__settings[$key];
         }
         return $return;
     }
     
-    public function add_settings($key, &$settings) {
+    /**
+     * @param int|string $key
+     * @param array $settings
+     */
+    public function add_settings($key, &$settings): bool {
+        /** @psalm-suppress UnsupportedReferenceUsage Preserved registry aliasing; covered by reference-contract regression tests. */
         $_this =& self::get_instance();
         $key = MvcInflector::camelize($key);
         if (!isset($_this->__settings[$key])) {

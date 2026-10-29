@@ -2,6 +2,13 @@
 
 class MvcShellDispatcher {
 
+    /**
+     * @var \MvcFileIncluder
+     */
+    public $file_includer;
+    /**
+     * @param array $args
+     */
     function __construct($args) {
     
         $this->file_includer = new MvcFileIncluder();
@@ -12,7 +19,10 @@ class MvcShellDispatcher {
     
     }
     
-    private function dispatch($args) {
+    /**
+     * @param array $args
+     */
+    private function dispatch($args): void {
     
         MvcConfiguration::set('ExecutionContext', 'shell');
 
@@ -42,18 +52,21 @@ class MvcShellDispatcher {
         $args = array_slice($args, 2);
         
         if (empty($args[0])) {
-            $args = array('main');
+            $args = ['main'];
         }
         
+        if (!is_a($shell_class_name, MvcShell::class, true)) {
+            MvcError::fatal('Expected a MvcShell implementation.');
+        }
         $shell = new $shell_class_name($args);
         
         $method = $args[0];
         $args = array_slice($args, 1);
-        if ($shell_name != 'help_shell') {
+        if ($shell_name !== 'help_shell') {
             $shell->out(Console_Color::convert("\n%_[Running ".$shell_title."::".$method."]%n"));
         }
         $shell->{$method}($args);
-        if ($shell_name != 'help_shell') {
+        if ($shell_name !== 'help_shell') {
             $shell->out(Console_Color::convert("\n%_[Complete]%n"));
         }
         
