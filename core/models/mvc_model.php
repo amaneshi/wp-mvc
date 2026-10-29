@@ -1,6 +1,7 @@
 <?php
 
 /** @psalm-consistent-constructor */
+#[\AllowDynamicProperties]
 class MvcModel {
 
     public int|string|null $insert_id = null;
@@ -799,10 +800,19 @@ class MvcModel {
         if ( isset( self::$describe_cache[ $this->table ] ) ) {
             $results = self::$describe_cache[ $this->table ];
         } else {
-            $results = $this->db_adapter->get_results(
-                "DESCRIBE {$this->table_reference}"
-            );
-            self::$describe_cache[ $this->table ] = $results;
+            $found = false;
+            $results = wp_cache_get($this->table, 'wp-mvc-schema', false, $found);
+            if (!$found || !is_array($results)) {
+                $results = $this->db_adapter->get_results(
+                    "DESCRIBE {$this->table_reference}"
+                );
+                if (is_array($results) && $results !== []) {
+                    wp_cache_set($this->table, $results, 'wp-mvc-schema');
+                }
+            }
+            if (is_array($results) && $results !== []) {
+                self::$describe_cache[$this->table] = $results;
+            }
         }
         
         $schema = [];

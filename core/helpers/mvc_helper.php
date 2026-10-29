@@ -2,7 +2,6 @@
 
 // Applications attach model-specific URL/link callbacks to helpers at runtime.
 /**
- * @psalm-no-seal-properties
  * @psalm-consistent-constructor
  */
 #[\AllowDynamicProperties]

@@ -1,6 +1,5 @@
 <?php
 
-/** @psalm-no-seal-properties */
 #[\AllowDynamicProperties]
 class MvcDispatcher {
 

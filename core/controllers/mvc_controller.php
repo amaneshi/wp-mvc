@@ -2,7 +2,6 @@
 
 // Model and helper names are injected by the framework at runtime.
 /**
- * @psalm-no-seal-properties
  * @psalm-consistent-constructor
  */
 #[\AllowDynamicProperties]

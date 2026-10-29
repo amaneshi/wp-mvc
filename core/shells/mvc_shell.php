@@ -1,6 +1,7 @@
 <?php
 
 /** @psalm-consistent-constructor */
+#[\AllowDynamicProperties]
 class MvcShell {
 
     /**

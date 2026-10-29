@@ -22,7 +22,7 @@ class MvcAdminLoader extends MvcLoader {
         global $plugin_page;
 
         // If the beginning of $plugin_page isn't 'mvc_', then this isn't a WP MVC-generated page
-        if (!str_starts_with((string) $plugin_page, 'mvc_')) {
+        if (empty($plugin_page) || !str_starts_with((string) $plugin_page, 'mvc_')) {
             return false;
         }
 

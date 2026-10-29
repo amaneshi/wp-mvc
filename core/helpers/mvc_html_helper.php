@@ -85,7 +85,7 @@ class MvcHtmlHelper extends MvcHelper {
     }
 
     public function __call(string $method, array $args) {
-        if (property_exists($this, $method) && is_callable($this->$method)) {
+        if (isset($this->$method) && is_callable($this->$method)) {
             return call_user_func_array($this->$method, $args);
         }
     }

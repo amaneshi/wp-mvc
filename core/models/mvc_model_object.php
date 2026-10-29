@@ -1,7 +1,8 @@
 <?php
 
-// Record fields and lazy associations depend on the application's database schema.
-/** @psalm-no-seal-properties */
+// Row columns remain real public properties for serialization, null reads,
+// property_exists(), and indirect writes such as $object->items[] = $item.
+// __get() resolves associations and genuinely missing fields only.
 #[\AllowDynamicProperties]
 class MvcModelObject {
     
@@ -21,10 +22,11 @@ class MvcModelObject {
         return get_object_vars($this);
     }
 
+    // Preserve native public columns while exposing schema-dependent writes to Psalm 5.
     public function __set(string $property_name, mixed $value): void {
         $this->$property_name = $value;
     }
-    
+
     public function __get(string $property_name): mixed {
         if (!empty($this->__settings['properties'][$property_name])) {
             $property = $this->__settings['properties'][$property_name];
@@ -82,5 +84,3 @@ class MvcModelObject {
     }
     
 }
-
-?>
