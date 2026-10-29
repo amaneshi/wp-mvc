@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * Public framework API or convention-loaded MVC/WordPress entrypoint.
+ * @api
+ */
 class MvcDataValidator {
 
     private array $common_patterns = [
@@ -7,7 +11,6 @@ class MvcDataValidator {
     ];
     
     /**
-     * @return MvcDataValidationError|true
      * @param string $field
      * @param mixed $value
      * @param string|array $rule
@@ -15,16 +18,15 @@ class MvcDataValidator {
     public function validate(string|int|null $field, $value, $rule): true|\MvcDataValidationError {
         if (is_string($rule)) {
             if (method_exists($this, $rule)) {
-                $result = $this->{$rule}($value);
+                $result = $this->apply_rule($rule, $value);
                 if ($result === true) {
                     return true;
                 }
                 $message = $result;
                 $message = $this->process_message($message, $field);
                 return new MvcDataValidationError($field, $message);
-            } else {
-                MvcError::fatal(sprintf(__("The validation rule %s wasn't found.", 'wpmvc'), $rule));
             }
+            MvcError::fatal(sprintf(__("The validation rule %s wasn't found.", 'wpmvc'), $rule));
         }
         if (!empty($rule['pattern']) || !empty($rule['rule'])) {
             return $this->validate_using_array_rule($field, $value, $rule);
@@ -46,7 +48,7 @@ class MvcDataValidator {
             $valid = preg_match($rule['pattern'], (string) $value);
         } elseif (isset($rule['rule'])) {
             if (method_exists($this, $rule['rule'])) {
-                $result = $this->{$rule['rule']}($value);
+                $result = $this->apply_rule($rule['rule'], $value);
                 $valid = $result === true;
                 $message = $result;
             }
@@ -70,6 +72,17 @@ class MvcDataValidator {
         }
         return preg_match($pattern, (string) $value);
     }
+
+    private function apply_rule(string $rule, mixed $value): mixed {
+        return match ($rule) {
+            'alphanumeric' => $this->alphanumeric($value),
+            'numeric' => $this->numeric($value),
+            'email' => $this->email($value),
+            'not_empty' => $this->not_empty($value),
+            'url' => $this->url($value),
+            default => $this->{$rule}($value),
+        };
+    }
     
     /**
      * @param string $message
@@ -88,9 +101,8 @@ class MvcDataValidator {
         $pattern = '/[\w]+/';
         if ($this->matches_pattern($value, $pattern)) {
             return true;
-        } else {
-            return __('{field} must only contain letters and numbers.', "wpmvc");
         }
+        return __('{field} must only contain letters and numbers.', "wpmvc");
     }
     
     /**
@@ -100,9 +112,8 @@ class MvcDataValidator {
     private function numeric($value) {
         if (is_numeric($value)) {
             return true;
-        } else {
-            return __('{field} must be a number.', 'wpmvc');
         }
+        return __('{field} must be a number.', 'wpmvc');
     }
     
     /**
@@ -113,9 +124,8 @@ class MvcDataValidator {
         $pattern = '/^[a-z0-9!#$%&\'*+\/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&\'*+\/=?^_`{|}~-]+)*@'.$this->common_patterns['hostname'].'$/i';
         if ($this->matches_pattern($value, $pattern)) {
             return true;
-        } else {
-            return __('{field} must be a valid email address.', 'wpmvc');
         }
+        return __('{field} must be a valid email address.', 'wpmvc');
     }
     
     /**
@@ -126,9 +136,8 @@ class MvcDataValidator {
         $pattern = '/[^\s]+/';
         if ($this->matches_pattern($value, $pattern)) {
             return true;
-        } else {
-            return __("{field} can't be empty.", 'wpmvc');
         }
+        return __("{field} can't be empty.", 'wpmvc');
     }
     
     /**
@@ -146,9 +155,8 @@ class MvcDataValidator {
             '(?:#'.$valid_chars.'*)?$/i';
         if ($this->matches_pattern($value, $pattern)) {
             return true;
-        } else {
-            return __('{field} must be a valid URL.', 'wpmvc');
         }
+        return __('{field} must be a valid URL.', 'wpmvc');
     }
     
     private function populate_ip_patterns(): void {

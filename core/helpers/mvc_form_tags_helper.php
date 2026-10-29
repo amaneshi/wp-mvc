@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * Public framework API or convention-loaded MVC/WordPress entrypoint.
+ * @api
+ */
 class MvcFormTagsHelper extends MvcHelper {
     
     // Generalized method that chooses the appropriate input type based on the SQL type of the field
@@ -8,7 +12,7 @@ class MvcFormTagsHelper extends MvcHelper {
      *
      * @param string $field_name
      */
-    static function input($field_name, $options=[]) : string {
+    public static function input($field_name, $options=[]) : string {
         $defaults = [
             'id' => self::input_id($field_name),
             'name' => self::input_name($field_name),
@@ -42,7 +46,7 @@ class MvcFormTagsHelper extends MvcHelper {
      * @param string $field_name
      * @param array $options
      */
-    static function text_input($field_name, $options=[]): string {
+    public static function text_input($field_name, $options=[]): string {
         $defaults = [
             'id' => self::input_id($field_name),
             'name' => self::input_name($field_name),
@@ -59,7 +63,7 @@ class MvcFormTagsHelper extends MvcHelper {
       * @param string $field_name
       * @param array $options
       */
-     static function password_input($field_name, $options=[]): string {
+     public static function password_input($field_name, $options=[]): string {
         $defaults = [
             'id' => self::input_id($field_name),
             'name' => self::input_name($field_name),
@@ -76,7 +80,7 @@ class MvcFormTagsHelper extends MvcHelper {
      * @param string $field_name
      * @param array $options
      */
-    static function wp_editor_input($field_name, $options=[]): string {
+    public static function wp_editor_input($field_name, $options=[]): string {
         $defaults = [
             'id' => self::input_id($field_name),
             'name' => self::input_name($field_name),
@@ -88,7 +92,7 @@ class MvcFormTagsHelper extends MvcHelper {
         $html = self::before_input($options);
         ob_start();
         wp_editor( (string) ($options['value'] ?? ''), $options['id'], $options['settings'] );
-        $html .= ob_get_contents();
+        $html .= ob_get_contents() ?: '';
         ob_end_clean();
         return $html . self::after_input($options);
     }
@@ -97,7 +101,7 @@ class MvcFormTagsHelper extends MvcHelper {
      * @param string $field_name
      * @param array $options
      */
-    static function textarea_input($field_name, $options=[]): string {
+    public static function textarea_input($field_name, $options=[]): string {
         $defaults = [
             'id' => self::input_id($field_name),
             'name' => self::input_name($field_name),
@@ -114,7 +118,7 @@ class MvcFormTagsHelper extends MvcHelper {
      * @param string $field_name
      * @param array $options
      */
-    static function number_input($field_name, $options=[]): string {
+    public static function number_input($field_name, $options=[]): string {
         $defaults = [
             'id' => self::input_id($field_name),
             'name' => self::input_name($field_name),
@@ -131,7 +135,7 @@ class MvcFormTagsHelper extends MvcHelper {
      * @param string $field_name
      * @param array $options
      */
-    static function email_input($field_name, $options=[]): string {
+    public static function email_input($field_name, $options=[]): string {
         $defaults = [
             'id' => self::input_id($field_name),
             'name' => self::input_name($field_name),
@@ -148,7 +152,7 @@ class MvcFormTagsHelper extends MvcHelper {
      * @param string $field_name
      * @param array $options
      */
-    static function checkbox_input($field_name, $options=[]): string {
+    public static function checkbox_input($field_name, $options=[]): string {
         $defaults = [
             'id' => self::input_id($field_name),
             'name' => self::input_name($field_name),
@@ -177,7 +181,7 @@ class MvcFormTagsHelper extends MvcHelper {
      * @param string $field_name
      * @param array $options
      */
-    static function hidden_input($field_name, $options=[]): string {
+    public static function hidden_input($field_name, $options=[]): string {
         $defaults = [
             'id' => self::input_id($field_name),
             'name' => self::input_name($field_name),
@@ -192,7 +196,7 @@ class MvcFormTagsHelper extends MvcHelper {
      * @param string $field_name
      * @param array $options
      */
-    static function select_input($field_name, $options=[]): string {
+    public static function select_input($field_name, $options=[]): string {
         $html = self::before_input($options);
         $html .= self::select_tag($field_name, $options);
         return $html . self::after_input($options);
@@ -202,7 +206,7 @@ class MvcFormTagsHelper extends MvcHelper {
      * @param string $field_name
      * @param array $options
      */
-    static function select_tag($field_name, $options=[]): string {
+    public static function select_tag($field_name, $options=[]): string {
         $defaults = [
             'id' => self::input_id($field_name),
             'name' => self::input_name($field_name),
@@ -232,7 +236,7 @@ class MvcFormTagsHelper extends MvcHelper {
     /**
      * @param array $options
      */
-    static function button(string $text, $options=[]): string {
+    public static function button(string $text, $options=[]): string {
         $defaults = [
             'id' => self::input_id($text),
             'type' => 'button',

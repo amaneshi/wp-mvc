@@ -1,11 +1,15 @@
 <?php
 
+/**
+ * Public framework API or convention-loaded MVC/WordPress entrypoint.
+ * @api
+ */
 class MvcPluginLoader {
     
     protected wpdb $wpdb;
     protected \MvcFileIncluder $file_includer;
     
-    function __construct() {
+    public function __construct() {
         global $wpdb;
         $this->wpdb = $wpdb;
         $this->file_includer = new MvcFileIncluder();

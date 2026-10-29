@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * Public framework API or convention-loaded MVC/WordPress entrypoint.
+ * @api
+ */
 class MvcFormHelper extends MvcHelper {
 
     public stdClass $controller;
@@ -93,10 +97,9 @@ class MvcFormHelper extends MvcHelper {
             $options = array_merge($defaults, $options);
             $options['type'] = empty($options['type']) ? 'text' : $options['type'];
             return $this->{$options['type'].'_input'}($field_name, $options);
-        } else {
-            MvcError::fatal('Field "'.$field_name.'" not found for use in a form input.');
-            return '';
         }
+        MvcError::fatal('Field "'.$field_name.'" not found for use in a form input.');
+        return '';
     }
 
     /**
@@ -345,7 +348,7 @@ class MvcFormHelper extends MvcHelper {
      * @param array $find_options
      * @param array $select_options
      */
-    function select_from_model(string $field_name, MvcModel $model, $find_options = [], $select_options = []): string {
+    public function select_from_model(string $field_name, MvcModel $model, $find_options = [], $select_options = []): string {
 
         $default_find_options = [
                 'selects' => [$model->primary_key, $model->display_field],

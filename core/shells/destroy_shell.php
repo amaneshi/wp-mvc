@@ -2,6 +2,9 @@
 
 /**
  *  Tool to automate deletion of files created by the Generate shell
+ *
+ * Public framework API or convention-loaded MVC/WordPress entrypoint.
+ * @api
  */
 class DestroyShell extends MvcShell {
 
@@ -44,8 +47,7 @@ class DestroyShell extends MvcShell {
     }
     
     /**
-     * Delete a generated widget 
-     * @param mixed $args 
+     * Delete a generated widget
      */
     public function widget(array $args): void {
         [$plugin, $name] = $this->get_plugin_model_args($args);

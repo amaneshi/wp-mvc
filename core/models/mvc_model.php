@@ -1,6 +1,12 @@
 <?php
 
-/** @psalm-consistent-constructor */
+/**
+ * @psalm-consistent-constructor
+ * @method MvcModelObject|null find_one_by_post_id(mixed $post_id)
+ *
+ * Public framework API or convention-loaded MVC/WordPress entrypoint.
+ * @api
+ */
 #[\AllowDynamicProperties]
 class MvcModel {
 
@@ -49,7 +55,7 @@ class MvcModel {
     private ?\MvcPostAdapter $wp_post_adapter = null;
     protected static array $describe_cache = [];
 
-    function __construct() {
+    public function __construct() {
         
         global $wpdb;
         
@@ -194,7 +200,7 @@ class MvcModel {
             'conditions' => [$this->name.'.'.$this->primary_key => $id]
         ];
         $this->db_adapter->update_all($data, $options);
-        if ($this->has_post() && !(isset($update_options['bypass_save_post']) && $update_options['bypass_save_post'])) {
+        if ($this->has_post() && (!isset($update_options['bypass_save_post']) || !$update_options['bypass_save_post'])) {
             $object = $this->find_by_id($id);
             if ($object instanceof \MvcModelObject) {
                 $this->save_post($object);
@@ -207,7 +213,7 @@ class MvcModel {
      */
     public function update_all($data, array $options=[], array $update_options=[]): void {
         $this->db_adapter->update_all($data, $options);
-        if ($this->has_post() && !(isset($update_options['bypass_save_post']) && $update_options['bypass_save_post'])) {
+        if ($this->has_post() && (!isset($update_options['bypass_save_post']) || !$update_options['bypass_save_post'])) {
             $objects = $this->find($options);
             foreach ($objects ?? [] as $object) {
                 if ($object !== null) {
@@ -242,7 +248,7 @@ class MvcModel {
                     wp_delete_post($object->post_id, true);
                 }
                 if ($before_delete_method_exists) {
-                    $this->before_delete($object);
+                    $this->{'before_delete'}($object);
                 }
             }
         }
@@ -399,6 +405,9 @@ class MvcModel {
         $conditions = [];
         if (is_string($keywords)) {
             $keywords = preg_split('/[\s]+/', $keywords);
+            if ($keywords === false) {
+                throw new RuntimeException('Cannot split search keywords.');
+            }
         }
         $formatted_fields = [];
         foreach ($fields as $field) {
@@ -656,7 +665,6 @@ class MvcModel {
 
     /**
      * @return void
-     * @param mixed $data
      * @param string $field
      * @param string $message
      */
@@ -972,6 +980,7 @@ class MvcModel {
             'public_search_joins' => ['should be defined as \'default_searchable_joins\' in the public controller', 'http://wpmvc.org/documentation/1.2/17/default_search_joins/'],
             'hide_menu' => ['should be defined as \'in_menu\' in \'AdminPages\' in MvcConfiguration', 'http://wpmvc.org/documentation/1.2/66/adminpages/']
         ];
+        /** @var array<string, mixed> $attributes Includes legacy/dynamic model configuration. */
         $attributes = get_object_vars($this);
         foreach ($obsolete_attributes as $attribute => $value) {
             if (isset($attributes[$attribute])) {
@@ -999,17 +1008,15 @@ class MvcModel {
             $attribute = substr($method, 8);
             if (isset($this->schema[$attribute])) {
                 return $this->find(['conditions' => [$attribute => $args[0]]]);
-            } else {
-                MvcError::fatal('Undefined attribute: '.$attribute.' for class: '.static::class.' when calling: '.$method.'.');
             }
+            MvcError::fatal('Undefined attribute: '.$attribute.' for class: '.static::class.' when calling: '.$method.'.');
         }
         if (str_starts_with($method, 'find_one_by_')) {
             $attribute = substr($method, 12);
             if (isset($this->schema[$attribute])) {
                 return $this->find_one(['conditions' => [$attribute => $args[0]]]);
-            } else {
-                MvcError::fatal('Undefined attribute: '.$attribute.' for class: '.static::class.' when calling: '.$method.'.');
             }
+            MvcError::fatal('Undefined attribute: '.$attribute.' for class: '.static::class.' when calling: '.$method.'.');
         }
         MvcError::fatal('Undefined method: '.static::class.'::'.$method.'.');
     }

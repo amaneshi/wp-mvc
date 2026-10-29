@@ -1,13 +1,17 @@
 <?php
 
+/**
+ * Public framework API or convention-loaded MVC/WordPress entrypoint.
+ * @api
+ */
 class MvcConfiguration {
 
     private array $config = [];
 
     /**
-     * @param bool $boot
+     * @param bool $_boot
      */
-    static function &get_instance($boot = true) : MvcConfiguration {
+    public static function &get_instance($_boot = true) : MvcConfiguration {
         static $instance = [];
         
         if (!$instance) {
@@ -15,6 +19,7 @@ class MvcConfiguration {
             $instance[0] =& $mvc_configuration;
         }
         
+        /** @psalm-suppress NonVariableReferenceReturn Psalm 6 cannot model this static array-element reference; regression-tested aliasing. */
         return $instance[0];
     }
 
@@ -23,7 +28,7 @@ class MvcConfiguration {
      * @param mixed $value
      *
      */
-    static function set($config, $value = null): bool {
+    public static function set($config, $value = null): bool {
         $_this = MvcConfiguration::get_instance();
 
         if (!is_array($config)) {
@@ -52,7 +57,7 @@ class MvcConfiguration {
      *
      * @param mixed $value
      */
-    static function append($config, $value = null): bool {
+    public static function append($config, $value = null): bool {
         global $plugin_name;
         $_this = MvcConfiguration::get_instance();
 
@@ -71,7 +76,7 @@ class MvcConfiguration {
     /**
      * @param string $config
      */
-    static function get($config) : mixed {
+    public static function get($config) : mixed {
         $_this = MvcConfiguration::get_instance();
 
         if (str_contains($config, '.')) {
@@ -84,10 +89,7 @@ class MvcConfiguration {
         if (!isset($names[1])) {
             return $_this->config[$config];
         }
-        if (count($names) === 2 && isset($_this->config[$config][$names[1]])) {
-            return $_this->config[$config][$names[1]];
-        }
-        return null;
+        return $_this->config[$config][$names[1]] ?? null;
     }
 
     public function __get(string $name): mixed {

@@ -3,6 +3,9 @@
 // Model and helper names are injected by the framework at runtime.
 /**
  * @psalm-consistent-constructor
+ *
+ * Public framework API or convention-loaded MVC/WordPress entrypoint.
+ * @api
  */
 #[\AllowDynamicProperties]
 class MvcController {
@@ -71,7 +74,7 @@ class MvcController {
         return $this->html;
     }
     
-    function __construct() {
+    public function __construct() {
 
         // Necessary for flash()-related functionality in the admin area only
         if (is_admin() && session_id() == '' && !headers_sent()) {
@@ -375,18 +378,18 @@ class MvcController {
     }
     
     /**
-     * @param array $view_vars
      *
      *
-     * @return void
-     * @param string $path
+     * @psalm-suppress PossiblyUnusedParam Psalm 6 loses parameter uses across extract() and runtime view includes.
      */
-    protected function include_view($path, $view_vars=[]) {
-        extract($view_vars);
-        $path = preg_replace('/^admin_([^\/]+)/', 'admin/$1', (string) $path);
+    protected function include_view(string $path, array $view_vars=[]): void {
+        extract($view_vars, EXTR_SKIP);
+        $path = preg_replace('/^admin_([^\/]+)/', 'admin/$1', $path)
+            ?? throw new RuntimeException('Cannot normalize an admin view path.');
         $filepath = $this->file_includer->find_theme_or_view_file($path);
         if (!$filepath) {
-            $path = preg_replace('/admin\/(?!layouts)([\w_]+)/', 'admin', (string) $path);
+            $path = preg_replace('/admin\/(?!layouts)([\w_]+)/', 'admin', $path)
+                ?? throw new RuntimeException('Cannot normalize a fallback admin view path.');
             $filepath = $this->file_includer->find_theme_or_view_file($path);
             if (!$filepath) {
                 MvcError::warning('View "'.$path.'" not found.');
@@ -475,9 +478,7 @@ class MvcController {
     }
     
     private function init_flash(): void {
-        if (!isset($_SESSION['mvc_flash'])) {
-            $_SESSION['mvc_flash'] = [];
-        }
+        $_SESSION['mvc_flash'] ??= [];
     }
     
     public function refresh(): void {

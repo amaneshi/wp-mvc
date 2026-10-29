@@ -1,25 +1,27 @@
 <?php
 
+/**
+ * Public framework API or convention-loaded MVC/WordPress entrypoint.
+ * @api
+ */
 #[\AllowDynamicProperties]
 class MvcFileIncluder {
 
     private string $core_path = MVC_CORE_PATH;
-    private array $plugin_app_paths = [];
+    private readonly array $plugin_app_paths;
 
     /**
      * @var string
      */
     private $theme_path = '';
 
-    function __construct() {
+    public function __construct() {
         $this->plugin_app_paths = MvcConfiguration::get('PluginAppPaths') ?? [];
         $this->theme_path = get_stylesheet_directory();
     }
 
     /**
      * @param null|string $filepath
-     *
-     * @return false|string
      */
     public function find_theme_or_view_file($filepath): false|string
     {
@@ -57,10 +59,7 @@ class MvcFileIncluder {
         return false;
     }
 
-    /**
-     * @return bool
-     */
-    public function require_first_app_file_or_core_file(string $filepath) {
+    public function require_first_app_file_or_core_file(string $filepath): bool {
         if ($this->include_first_app_file($filepath)) {
             return true;
         }
@@ -70,10 +69,7 @@ class MvcFileIncluder {
         return $this->require_core_file($filepath);
     }
 
-    /**
-     * @return bool
-     */
-    public function require_all_app_files_or_core_file(string $filepath) {
+    public function require_all_app_files_or_core_file(string $filepath): bool {
         if ($this->include_all_app_files($filepath)) {
             return true;
         }
@@ -83,10 +79,7 @@ class MvcFileIncluder {
         return $this->require_core_file($filepath);
     }
 
-    /**
-     * @return bool
-     */
-    public function require_core_file(string $filepath) {
+    public function require_core_file(string $filepath): bool {
         if ($this->include_core_file('pluggable/'.$filepath)) {
             return true;
         }
@@ -123,13 +116,9 @@ class MvcFileIncluder {
         return $this->include_file($this->core_path.$filepath);
     }
 
-    public function include_first_app_file(string $filepath): bool {
-        foreach ($this->plugin_app_paths as $plugin_app_path) {
-            if ($this->include_file($plugin_app_path.$filepath)) {
-                return true;
-            }
-        }
-        return false;
+    public function include_first_app_file(string $filepath): bool
+    {
+        return array_any($this->plugin_app_paths, fn($plugin_app_path): bool => $this->include_file($plugin_app_path.$filepath));
     }
 
     public function include_first_app_file_or_core_file(string $filepath): bool {
@@ -138,7 +127,7 @@ class MvcFileIncluder {
                 return true;
             }
         }
-        return !(!$this->include_core_file('pluggable/'.$filepath) && !$this->include_core_file($filepath));
+        return $this->include_core_file('pluggable/'.$filepath) || $this->include_core_file($filepath);
     }
 
     /**
@@ -164,7 +153,7 @@ class MvcFileIncluder {
         $filenames = [];
         if (is_dir($directory)) {
             $filenames = isset($options['recursive']) ? $this->scandir_recursive($directory) : scandir($directory);
-            $filenames = array_filter($filenames ?: [], [$this, 'is_php_file']);
+            $filenames = array_filter($filenames ?: [], $this->is_php_file(...));
         }
 
         return $filenames;
@@ -172,11 +161,11 @@ class MvcFileIncluder {
     }
 
     /**
-     * @param array $options
+     * @param array $_options
      *
      * @return array
      */
-    public function require_php_files_in_directory(string $directory, $options=[]) {
+    public function require_php_files_in_directory(string $directory, $_options=[]) {
 
         $filenames = $this->get_php_files_in_directory($directory);
         $filepaths = [];

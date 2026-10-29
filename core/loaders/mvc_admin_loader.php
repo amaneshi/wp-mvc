@@ -2,6 +2,10 @@
 
 require_once __DIR__ . '/mvc_loader.php';
 
+/**
+ * Public framework API or convention-loaded MVC/WordPress entrypoint.
+ * @api
+ */
 class MvcAdminLoader extends MvcLoader {
 
     /**
@@ -85,6 +89,7 @@ class MvcAdminLoader extends MvcLoader {
             }
 
             foreach ($this->admin_controller_names[$plugin_name] as $controller_name) {
+                $controller_name = (string) $controller_name;
 
                 if (isset($admin_pages[$controller_name])) {
                     if (empty($admin_pages[$controller_name])) {
@@ -165,7 +170,7 @@ class MvcAdminLoader extends MvcLoader {
                         }
                     }
 
-                    $processed_pages = $this->process_admin_pages((string) $controller_name, $pages, $plugin_name);
+                    $processed_pages = $this->process_admin_pages($controller_name, $pages, $plugin_name);
 
                     foreach ($processed_pages as $key => $admin_page) {
 

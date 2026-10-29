@@ -1,6 +1,10 @@
 <?php
 
 // To do: make this more robust and add error messages
+/**
+ * Public framework API or convention-loaded MVC/WordPress entrypoint.
+ * @api
+ */
 class MvcDirectory {
 
     /**
@@ -46,6 +50,9 @@ class MvcDirectory {
         if ($this->exists($path)) {
         
             $objects = scandir($path);
+            if ($objects === false) {
+                return false;
+            }
             
             foreach ($objects as $object) {
                 if ($object !== '.' && $object !== '..') {

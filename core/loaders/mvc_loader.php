@@ -35,7 +35,7 @@ abstract class MvcLoader {
      */
     protected $settings_names = [];
 
-    function __construct() {
+    public function __construct() {
     
         if (!defined('MVC_CORE_PATH')) {
             define('MVC_CORE_PATH', MVC_PLUGIN_PATH.'core/');
@@ -206,6 +206,9 @@ abstract class MvcLoader {
             foreach ($widget_filenames as $widget_file) {
                 $widget_name = str_replace('.php', '', (string) $widget_file);
                 $widget_class = MvcInflector::camelize($plugin).'_'.MvcInflector::camelize($widget_name);
+                if (!is_a($widget_class, WP_Widget::class, true)) {
+                    throw new UnexpectedValueException('An MVC widget must extend WP_Widget.');
+                }
                 register_widget($widget_class);
             }
         }

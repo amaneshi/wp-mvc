@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * Public framework API or convention-loaded MVC/WordPress entrypoint.
+ * @api
+ */
 class MvcPublicController extends MvcController {
 
 
@@ -7,13 +11,15 @@ class MvcPublicController extends MvcController {
     public ?array $default_searchable_fields = null;
     public ?array $default_search_joins = null;
 
+    #[\Override]
     public bool $is_admin = false;
     
-    function __construct() {
+    public function __construct() {
         parent::__construct();
         $this->clean_wp_query();
     }
     
+    #[\Override]
     public function index(): void {
         $this->set_objects();
     }
@@ -50,9 +56,9 @@ class MvcPublicController extends MvcController {
      * @return null|string|string[]
      *
      * @psalm-return list<string>|null|string
-     * @param array $options
+     * @param array $_options
      */
-    public function pagination($options=[]) {
+    public function pagination($_options=[]) {
         return paginate_links($this->pagination);
     }
     
@@ -61,16 +67,16 @@ class MvcPublicController extends MvcController {
     }
     
     /**
-     * @param string $action
+     * @param string $_action
      */
-    public function after_action($action): void {
+    public function after_action($_action): void {
         $this->set_page_title();
     }
     
     /**
-     * @param string $original_title
+     * @param string $_original_title
      */
-    public function set_wp_title($original_title) : string {
+    public function set_wp_title($_original_title) : string {
         $separator = ' | ';
         $controller_name = MvcInflector::titleize($this->name);
         $object_name = null;

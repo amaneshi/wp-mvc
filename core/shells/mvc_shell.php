@@ -1,6 +1,10 @@
 <?php
 
-/** @psalm-consistent-constructor */
+/**
+ * @psalm-consistent-constructor
+ * Public framework API or convention-loaded MVC/WordPress entrypoint.
+ * @api
+ */
 #[\AllowDynamicProperties]
 class MvcShell {
 
@@ -14,7 +18,7 @@ class MvcShell {
     /**
      * @param array $args
      */
-    function __construct($args=[]) {
+    public function __construct($args=[]) {
     
         $this->file_includer = new MvcFileIncluder();
         
@@ -26,7 +30,7 @@ class MvcShell {
     }
     
     /**
-     * Empty callback method. This can be overwritten by descendant classes to 
+     * Empty callback method. This can be overwritten by descendant classes to
      * add custom functionality during shell initialization
      *
      * @param array $args

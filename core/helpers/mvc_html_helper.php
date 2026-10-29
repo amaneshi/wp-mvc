@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * Public framework API or convention-loaded MVC/WordPress entrypoint.
+ * @api
+ */
 class MvcHtmlHelper extends MvcHelper {
 
     /**
@@ -11,7 +15,7 @@ class MvcHtmlHelper extends MvcHelper {
      * @param string $confirm_message - javascript confirmation message
      * @return string - string <a /> element
      */
-    static function link(string $text, $url, $options=[], $confirm_message=''): string {
+    public static function link(string $text, $url, $options=[], $confirm_message=''): string {
         if (is_array($url)) {
             $url = MvcRouter::public_url($url);
         }
@@ -28,6 +32,9 @@ class MvcHtmlHelper extends MvcHelper {
         }
 
         if ($confirm_message) {
+            if (!is_string($confirm_message)) {
+                throw new InvalidArgumentException('A link confirmation message must be a string.');
+            }
             $confirm_message = str_replace("'", "\'", $confirm_message);
             $confirm_message = str_replace('"', '\"', $confirm_message);
             $options['onclick'] = "return confirm('{$confirm_message}');";
@@ -42,7 +49,7 @@ class MvcHtmlHelper extends MvcHelper {
      *
      * @param object|null $object
      */
-    static function object_url($object, $options=[]): string {
+    public static function object_url($object, $options=[]): string {
         $defaults = [
             'id' => $object?->__id,
             'action' => 'show',
@@ -55,7 +62,7 @@ class MvcHtmlHelper extends MvcHelper {
     /**
      * @param object|null $object
      */
-    static function object_link($object, array $options=[]): string {
+    public static function object_link($object, array $options=[]): string {
         $url = self::object_url($object, $options);
         $text = (string) (empty($options['text']) ? $object?->__name : $options['text']);
         return self::link($text, $url, $options);
@@ -66,7 +73,7 @@ class MvcHtmlHelper extends MvcHelper {
      *
      * @param object|null $object
      */
-    static function admin_object_url($object, $options=[]): string {
+    public static function admin_object_url($object, $options=[]): string {
         $defaults = [
             'id' => $object?->__id,
             'object' => $object
@@ -78,7 +85,7 @@ class MvcHtmlHelper extends MvcHelper {
     /**
      * @param object|null $object
      */
-    static function admin_object_link($object, array $options=[]): string {
+    public static function admin_object_link($object, array $options=[]): string {
         $url = self::admin_object_url($object, $options);
         $text = (string) (empty($options['text']) ? $object?->__name : $options['text']);
         return self::link($text, $url);

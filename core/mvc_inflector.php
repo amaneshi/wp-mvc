@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * Public framework API or convention-loaded MVC/WordPress entrypoint.
+ * @api
+ */
 class MvcInflector {
 
     // Plural inflector rules
@@ -200,7 +204,8 @@ class MvcInflector {
 
         foreach (self::$_plural['rules'] as $rule => $replacement) {
             if (preg_match($rule, $string)) {
-                self::$_cache['pluralize'][$string] = preg_replace($rule, (string) $replacement, $string);
+                self::$_cache['pluralize'][$string] = preg_replace($rule, (string) $replacement, $string)
+                    ?? throw new RuntimeException('Cannot apply a plural inflection rule.');
                 return self::$_cache['pluralize'][$string];
             }
         }
@@ -235,7 +240,8 @@ class MvcInflector {
 
         foreach (self::$_singular['rules'] as $rule => $replacement) {
             if (preg_match($rule, $string)) {
-                self::$_cache['singularize'][$string] = preg_replace($rule, (string) $replacement, $string);
+                self::$_cache['singularize'][$string] = preg_replace($rule, (string) $replacement, $string)
+                    ?? throw new RuntimeException('Cannot apply a singular inflection rule.');
                 return self::$_cache['singularize'][$string];
             }
         }
@@ -248,7 +254,8 @@ class MvcInflector {
     
     public static function titleize(string|int|null $string): string {
         $string = (string) $string;
-        $string = preg_replace('/[A-Z]/', ' $0', $string);
+        $string = preg_replace('/[A-Z]/', ' $0', $string)
+            ?? throw new RuntimeException('Cannot titleize a string.');
         $string = trim(str_replace('_', ' ', $string));
         return ucwords($string);
     }

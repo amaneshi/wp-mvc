@@ -1,8 +1,11 @@
 <?php
 
 /**
- * Help system for the WPMVC Console. 
+ * Help system for the WPMVC Console.
  * Also provides the capability for shells to be self documenting.
+ *
+ * Public framework API or convention-loaded MVC/WordPress entrypoint.
+ * @api
  */
 class HelpShell extends MvcShell {
 
@@ -110,8 +113,8 @@ class HelpShell extends MvcShell {
     /**
      * Get a list of the available shells.
      * Also is executed if the wpmvc console is run with no arguments.
-     * 
-     * @param mixed $args 
+     *
+     * @param mixed $args
      */
     #[\Override]
     public function main($args): void {

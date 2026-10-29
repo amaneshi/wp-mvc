@@ -3,25 +3,25 @@
  * Color.php
  *
  * PHP version 4
- * 
+ *
  * Copyright (c) 2007 Stefan Walk
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy 
- * of this software and associated documentation files (the "Software"), to 
- * deal in the Software without restriction, including without limitation the 
- * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or 
- * sell copies of the Software, and to permit persons to whom the Software is 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in 
+ * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  *
  * @category Console
@@ -72,7 +72,7 @@ $GLOBALS['_CONSOLE_COLOR_CODES'] =  [
 /**
  * A simple class to use ANSI Colorcodes.
  *
- * Of all the functions, you probably only want to use convert() and escape(). 
+ * Of all the functions, you probably only want to use convert() and escape().
  * They are easier to use. However, if you want to access colorcodes more
  * directly, look into the other functions.
  *
@@ -81,6 +81,9 @@ $GLOBALS['_CONSOLE_COLOR_CODES'] =  [
  * @author   Stefan Walk <et@php.net>
  * @license  http://www.opensource.org/licenses/mit-license.php MIT License
  * @link     http://pear.php.net/package/Console_Color
+ *
+ * Public framework API or convention-loaded MVC/WordPress entrypoint.
+ * @api
  */
 class Console_Color
 {
@@ -178,7 +181,7 @@ class Console_Color
      * Converts colorcodes in the format %y (for yellow) into ansi-control
      * codes. The conversion table is: ('bold' meaning 'light' on some
      * terminals). It's almost the same conversion table irssi uses.
-     * <pre> 
+     * <pre>
      *                  text      text            background
      *      ------------------------------------------------
      *      %k %K %0    black     dark grey       black
@@ -257,13 +260,11 @@ class Console_Color
                 $string = str_replace($key, Console_Color::color($value),
                           $string);
             }
-            $string = str_replace('% ', '%', $string);
+            return str_replace('% ', '%', $string);
 
-        } else {
-            $string = preg_replace('/%((%)|.)/', '$2', $string);
         }
 
-        return $string;
+        return preg_replace('/%((%)|.)/', '$2', $string);
     }
 
     /**

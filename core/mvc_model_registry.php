@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * Public framework API or convention-loaded MVC/WordPress entrypoint.
+ * @api
+ */
 class MvcModelRegistry {
 
     public static function require_model(string $key): MvcModel {
@@ -15,19 +19,20 @@ class MvcModelRegistry {
      */
     public $__models = [];
 
-    static function &get_instance() : MvcModelRegistry {
+    public static function &get_instance() : MvcModelRegistry {
         static $instance = [];
         if (!$instance) {
             $mvc_model_registry = new MvcModelRegistry();
             $instance[0] =& $mvc_model_registry;
         }
+        /** @psalm-suppress NonVariableReferenceReturn Psalm 6 cannot model this static array-element reference; regression-tested aliasing. */
         return $instance[0];
     }
 
     /**
      * @param string $key
      */
-    static function &get_model($key) : object|false {
+    public static function &get_model($key) : object|false {
         /** @psalm-suppress UnsupportedReferenceUsage Preserved registry aliasing; covered by reference-contract regression tests. */
         $_this =& self::get_instance();
         $key = MvcInflector::camelize($key);
@@ -43,7 +48,7 @@ class MvcModelRegistry {
         return $return;
     }
 
-    static function &get_models() : array {
+    public static function &get_models() : array {
         /** @psalm-suppress UnsupportedReferenceUsage Preserved registry aliasing; covered by reference-contract regression tests. */
         $_this =& self::get_instance();
         /** @psalm-suppress UnsupportedPropertyReferenceUsage Preserved registry aliasing; covered by reference-contract regression tests. */
@@ -55,7 +60,7 @@ class MvcModelRegistry {
      * @param object $model
      * @param int|string $key
      */
-    static function add_model($key, &$model): bool {
+    public static function add_model($key, &$model): bool {
         /** @psalm-suppress UnsupportedReferenceUsage Preserved registry aliasing; covered by reference-contract regression tests. */
         $_this =& self::get_instance();
         $key = MvcInflector::camelize($key);

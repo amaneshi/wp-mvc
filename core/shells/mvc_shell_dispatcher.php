@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * Public framework API or convention-loaded MVC/WordPress entrypoint.
+ * @api
+ */
 #[\AllowDynamicProperties]
 class MvcShellDispatcher {
 
@@ -10,7 +14,7 @@ class MvcShellDispatcher {
     /**
      * @param array $args
      */
-    function __construct($args) {
+    public function __construct($args) {
     
         $this->file_includer = new MvcFileIncluder();
         
@@ -32,7 +36,7 @@ class MvcShellDispatcher {
         $shell_name = 'help';
         
         if (!empty($args[1])) {
-            $shell_name = $args[1];
+            $shell_name = (string) $args[1];
         }
     
         $shell_title = MvcInflector::camelize($shell_name);

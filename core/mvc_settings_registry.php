@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * Public framework API or convention-loaded MVC/WordPress entrypoint.
+ * @api
+ */
 class MvcSettingsRegistry {
 
     public static function require_settings(string $key): MvcSettings {
@@ -21,13 +25,14 @@ class MvcSettingsRegistry {
             $mvc_settings_registry = new MvcSettingsRegistry();
             $instance[0] =& $mvc_settings_registry;
         }
+        /** @psalm-suppress NonVariableReferenceReturn Psalm 6 cannot model this static array-element reference; regression-tested aliasing. */
         return $instance[0];
     }
 
     /**
      * @param int|string $key
      */
-    static function &get_settings($key) : object|false {
+    public static function &get_settings($key) : object|false {
         /** @psalm-suppress UnsupportedReferenceUsage Preserved registry aliasing; covered by reference-contract regression tests. */
         $_this =& self::get_instance();
         $key = MvcInflector::camelize($key);

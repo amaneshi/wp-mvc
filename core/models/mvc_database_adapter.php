@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * Public framework API or convention-loaded MVC/WordPress entrypoint.
+ * @api
+ */
 #[\AllowDynamicProperties]
 class MvcDatabaseAdapter {
 
@@ -10,7 +14,7 @@ class MvcDatabaseAdapter {
     public array $defaults = [];
     public ?array $schema = null;
 
-    function __construct() {
+    public function __construct() {
         $this->db = new MvcDatabase();
     }
     
@@ -161,7 +165,8 @@ class MvcDatabaseAdapter {
                         $operator = " IS ";
                     }
                     else {
-                        $key = preg_replace('/\s+(<>|!=)/', '', (string) $key);
+                        $key = preg_replace('/\s+(<>|!=)/', '', (string) $key)
+                            ?? throw new RuntimeException('Cannot normalize a SQL condition operator.');
                         $operator = " IS NOT ";
                     }
                     $value = "NULL";

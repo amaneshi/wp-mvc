@@ -1,11 +1,15 @@
 <?php
 
+/**
+ * Public framework API or convention-loaded MVC/WordPress entrypoint.
+ * @api
+ */
 class MvcDatabase {
 
     private readonly wpdb $wpdb;
-    private bool $debug = false;
+    private readonly bool $debug;
 
-    function __construct() {
+    public function __construct() {
         global $wpdb;
         $this->wpdb = $wpdb;
         $this->debug = (bool) MvcConfiguration::get('Debug');

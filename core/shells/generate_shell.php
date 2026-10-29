@@ -1,8 +1,11 @@
 <?php
 
 /**
- * Shell for automating the creation of WP MVC-based plugins and the 
+ * Shell for automating the creation of WP MVC-based plugins and the
  * models, views, and controllers used in those plugins.
+ *
+ * Public framework API or convention-loaded MVC/WordPress entrypoint.
+ * @api
  */
 class GenerateShell extends MvcShell {
 
@@ -15,6 +18,7 @@ class GenerateShell extends MvcShell {
     /**
      * @param array $args
      */
+    #[\Override]
     public function init($args = []): void {
         $this->templater = new MvcTemplater();
         $this->require_templater()->set_template_directory($this->core_path.'templates/plugin/app/');
@@ -23,7 +27,7 @@ class GenerateShell extends MvcShell {
     /**
      * Generate a MVC Plugin.
      * wpmvc generate plugin <plugin>
-     * @param mixed $args 
+     * @param mixed $args
      */
     public function plugin($args): void {
         if (empty($args[0])) {
@@ -36,7 +40,6 @@ class GenerateShell extends MvcShell {
     /**
      * Generate controller and admin controller:
      * wpmvc generate controllers <plugin> <name>
-     * @param mixed $args 
      */
     public function controllers(array $args): void {
         [$plugin, $name] = $this->get_plugin_model_args($args);
@@ -46,7 +49,6 @@ class GenerateShell extends MvcShell {
     /**
      * Generate model for plugin
      * wpmvc generate model <plugin> <model>
-     * @param mixed $args 
      */
     public function model(array $args): void {
         [$plugin, $name] = $this->get_plugin_model_args($args);
@@ -56,7 +58,6 @@ class GenerateShell extends MvcShell {
     /**
      * Generate models, views, and controllers for an entity
      * wpmvc generate scaffold <plugin> <model>
-     * @param mixed $args 
      */
     public function scaffold(array $args): void {
         [$plugin, $name] = $this->get_plugin_model_args($args);
@@ -68,7 +69,6 @@ class GenerateShell extends MvcShell {
     /**
      * Generate all views for CRUD operations for model
      * wpmvc generate views <plugin> <model>
-     * @param mixed $args 
      */
     public function views(array $args): void {
         [$plugin, $name] = $this->get_plugin_model_args($args);

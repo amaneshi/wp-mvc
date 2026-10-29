@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * Public framework API or convention-loaded MVC/WordPress entrypoint.
+ * @api
+ */
 class MvcObjectRegistry {
 
     /**
@@ -7,12 +11,13 @@ class MvcObjectRegistry {
      */
     public $__objects = [];
 
-    static function &get_instance() : MvcObjectRegistry {
+    public static function &get_instance() : MvcObjectRegistry {
         static $instance = [];
         if (!$instance) {
             $mvc_object_registry = new MvcObjectRegistry();
             $instance[0] =& $mvc_object_registry;
         }
+        /** @psalm-suppress NonVariableReferenceReturn Psalm 6 cannot model this static array-element reference; regression-tested aliasing. */
         return $instance[0];
     }
 
@@ -21,7 +26,7 @@ class MvcObjectRegistry {
      *
      * @return mixed Registry values include both model records and framework metadata.
      */
-    static function &get_object($key) {
+    public static function &get_object($key) {
         /** @psalm-suppress UnsupportedReferenceUsage Preserved registry aliasing; covered by reference-contract regression tests. */
         $_this =& MvcObjectRegistry::get_instance();
         $key = MvcInflector::camelize($key);
@@ -36,8 +41,9 @@ class MvcObjectRegistry {
     /**
      * @param MvcModelObject|null $object
      * @param int|string $key
+     * @psalm-suppress PossiblyUnusedParam Psalm cannot follow the stored reference; aliasing is regression-tested.
      */
-    static function add_object($key, &$object): bool {
+    public static function add_object($key, &$object): bool {
         /** @psalm-suppress UnsupportedReferenceUsage Preserved registry aliasing; covered by reference-contract regression tests. */
         $_this =& MvcObjectRegistry::get_instance();
         $key = MvcInflector::camelize($key);

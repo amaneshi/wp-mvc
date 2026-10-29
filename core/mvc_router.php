@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * Public framework API or convention-loaded MVC/WordPress entrypoint.
+ * @api
+ */
 class MvcRouter {
     
     /**
@@ -10,7 +14,7 @@ class MvcRouter {
     /**
      * @param array $options
      */
-    static function public_url($options=[]): string {
+    public static function public_url($options=[]): string {
         $options = apply_filters('mvc_before_public_url', $options);
         $defaults = [
             'action' => 'index',
@@ -39,7 +43,7 @@ class MvcRouter {
                 $method = new ReflectionMethod($model::class, 'to_url');
                 $parameter_count = $method->getNumberOfParameters();
 
-                if ($parameter_count == 2) {
+                if ($parameter_count === 2) {
                     $url .= $model->to_url($options['object'], $options);
                 } else {
                     $url .= $model->to_url($options['object']);
@@ -91,7 +95,7 @@ class MvcRouter {
         return $url;
     }
 
-    static function admin_url(array $options=[]): string {
+    public static function admin_url(array $options=[]): string {
         if (!empty($options['object']) && is_object($options['object'])) {
             if (empty($options['id']) && !empty($options['object']->__id)) {
                 $options['id'] = $options['object']->__id;
@@ -111,7 +115,7 @@ class MvcRouter {
     /**
      * @return mixed[]
      */
-    static function admin_url_params(array $options=[]): array {
+    public static function admin_url_params(array $options=[]): array {
         $params = [];
         if (!empty($options['controller'])) {
             $controller = preg_replace('/^admin_/', '', (string) $options['controller']);
@@ -129,7 +133,7 @@ class MvcRouter {
     /**
      * @param array|string $options
      */
-    static function admin_page_param($options=[]): string|false {
+    public static function admin_page_param($options=[]): string|false {
         if (is_string($options)) {
             $options = ['model' => $options];
         }
@@ -144,7 +148,7 @@ class MvcRouter {
      * @param string[] $defaults
      *
      */
-    static function public_connect( $route, $defaults = [] ): void {
+    public static function public_connect( $route, $defaults = [] ): void {
         /** @psalm-suppress UnsupportedReferenceUsage Preserved registry aliasing; covered by reference-contract regression tests. */
         $_this =& MvcRouter::get_instance();
         $_this->maybe_add_route_prefix($route);
@@ -155,13 +159,13 @@ class MvcRouter {
      * @param string[] $route
      *
      */
-    static function admin_ajax_connect(array $route): void {
+    public static function admin_ajax_connect(array $route): void {
         /** @psalm-suppress UnsupportedReferenceUsage Preserved registry aliasing; covered by reference-contract regression tests. */
         $_this =& MvcRouter::get_instance();
         $_this->add_admin_ajax_route($route);
     }
 
-    static function &get_instance() : MvcRouter {
+    public static function &get_instance() : MvcRouter {
         static $instance = [];
         if (!$instance) {
             $mvc_router = new MvcRouter();
@@ -171,11 +175,12 @@ class MvcRouter {
                 'admin_ajax' => []
             ];
         }
+        /** @psalm-suppress NonVariableReferenceReturn Psalm 6 cannot model this static array-element reference; regression-tested aliasing. */
         return $instance[0];
     }
 
     /** @return array<array{0: string, 1: array}> */
-    static function &get_public_routes() {
+    public static function &get_public_routes() {
         /** @psalm-suppress UnsupportedReferenceUsage Preserved registry aliasing; covered by reference-contract regression tests. */
         $_this =& self::get_instance();
         /** @psalm-suppress UnsupportedPropertyReferenceUsage Preserved registry aliasing; covered by reference-contract regression tests. */
@@ -183,7 +188,7 @@ class MvcRouter {
         return $return;
     }
 
-    static function &get_admin_ajax_routes() : array {
+    public static function &get_admin_ajax_routes() : array {
         /** @psalm-suppress UnsupportedReferenceUsage Preserved registry aliasing; covered by reference-contract regression tests. */
         $_this =& self::get_instance();
         /** @psalm-suppress UnsupportedPropertyReferenceUsage Preserved registry aliasing; covered by reference-contract regression tests. */
@@ -195,13 +200,13 @@ class MvcRouter {
      * @param string $route
      * @param array $defaults
      */
-    static function add_public_route($route, $defaults): void {
+    public static function add_public_route($route, $defaults): void {
         /** @psalm-suppress UnsupportedReferenceUsage Preserved registry aliasing; covered by reference-contract regression tests. */
         $_this =& self::get_instance();
         $_this->routes['public'][] = [$route, $defaults];
     }
     
-    static function add_admin_ajax_route(array $route): void {
+    public static function add_admin_ajax_route(array $route): void {
         /** @psalm-suppress UnsupportedReferenceUsage Preserved registry aliasing; covered by reference-contract regression tests. */
         $_this =& self::get_instance();
         if (empty($route['wp_action'])) {
@@ -213,14 +218,14 @@ class MvcRouter {
     /**
      * @param string $route
      */
-    static function maybe_add_route_prefix(&$route): void{
+    public static function maybe_add_route_prefix(&$route): void{
         $route_prefix = MvcConfiguration::get( 'CustomRoutePrefix' );
         if ( ! empty( $route_prefix ) ) {
             $route = $route_prefix . '/' . $route;
         }
     }
 
-    static function get_route_prefix(): mixed {
+    public static function get_route_prefix(): mixed {
         return MvcConfiguration::get( 'CustomRoutePrefix' );
     }
 

@@ -1,6 +1,10 @@
 <?php
 
-/** @psalm-consistent-constructor */
+/**
+ * @psalm-consistent-constructor
+ * Public framework API or convention-loaded MVC/WordPress entrypoint.
+ * @api
+ */
 class MvcSettings {
 
     /**
@@ -19,7 +23,7 @@ class MvcSettings {
 
     public array $settings = [];
     
-    function __construct() {
+    public function __construct() {
         $this->name = static::class;
         $this->title = MvcInflector::titleize($this->name);
         $this->key = 'mvc_'.MvcInflector::underscore($this->name);
@@ -93,11 +97,11 @@ class MvcSettings {
     }
     
     /**
-     * @param (int|string) $setting_key
+     * @param (int|string) $_setting_key
      *
      * @param mixed $value
      */
-    public function validate_field($setting_key, $value) : mixed {
+    public function validate_field($_setting_key, $value) : mixed {
         return $value;
     }
     

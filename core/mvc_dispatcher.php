@@ -1,9 +1,13 @@
 <?php
 
+/**
+ * Public framework API or convention-loaded MVC/WordPress entrypoint.
+ * @api
+ */
 #[\AllowDynamicProperties]
 class MvcDispatcher {
 
-    static function dispatch(array $options=[]) : mixed {
+    public static function dispatch(array $options=[]) : mixed {
         
         $controller_name = (string) $options['controller'];
         $action = $options['action'];
@@ -81,7 +85,7 @@ class MvcDispatcher {
     /**
      * @param mixed $params A request collection or scalar returned unchanged.
      */
-    static function escape_params(mixed $params): mixed {
+    public static function escape_params(mixed $params): mixed {
         if (is_array($params)) {
             foreach ($params as $key => $value) {
                 if (is_string($value)) {
@@ -94,7 +98,7 @@ class MvcDispatcher {
         return $params;
     }
 
-    public function __call(string $method, array $args) {
+    public function __call(string $method, array $_args) {
         if (isset($this->$method)) {
             $function = $this->$method;
             $function();

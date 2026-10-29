@@ -3,6 +3,9 @@
 // Applications attach model-specific URL/link callbacks to helpers at runtime.
 /**
  * @psalm-consistent-constructor
+ *
+ * Public framework API or convention-loaded MVC/WordPress entrypoint.
+ * @api
  */
 #[\AllowDynamicProperties]
 class MvcHelper {
@@ -12,7 +15,7 @@ class MvcHelper {
 
     protected \MvcFileIncluder $file_includer;
     
-    function __construct() {
+    public function __construct() {
         $this->file_includer = new MvcFileIncluder();
         $this->init();
         $this->plugin_name = MvcObjectRegistry::get_object('plugin_name');
@@ -28,14 +31,14 @@ class MvcHelper {
     }
     
     /**
-     * @param string $path
-     * @param array $view_vars
+     * @psalm-suppress PossiblyUnusedParam Psalm 6 loses parameter uses across extract() and runtime view includes.
      */
-    public function render_view($path, $view_vars=[]): void {
-        extract($view_vars);
+    public function render_view(string $path, array $view_vars=[]): void {
+        extract($view_vars, EXTR_SKIP);
         $filepath = $this->file_includer->find_first_app_file_or_core_file('views/'.$path.'.php');
         if (!$filepath) {
-            $path = preg_replace('/admin\/(?!layouts)([\w_]+)/', 'admin', (string) $path);
+            $path = preg_replace('/admin\/(?!layouts)([\w_]+)/', 'admin', $path)
+                ?? throw new RuntimeException('Cannot normalize an admin helper view path.');
             $filepath = $this->file_includer->find_first_app_file_or_core_file('views/'.$path.'.php');
             if (!$filepath) {
                 MvcError::warning('View "'.$path.'" not found.');
@@ -49,7 +52,7 @@ class MvcHelper {
      * @return string
      * @param string $string
      */
-    static function esc_attr($string) {
+    public static function esc_attr($string) {
         return esc_attr($string);
     }
     
@@ -57,7 +60,7 @@ class MvcHelper {
      * @param array $attributes
      * @param array|string $valid_attributes_array_or_tag
      */
-    static function attributes_html($attributes, $valid_attributes_array_or_tag): string {
+    public static function attributes_html($attributes, $valid_attributes_array_or_tag): string {
     
         $event_attributes = [
             'standard' => [
@@ -228,19 +231,19 @@ class MvcHelper {
     /**
      * @param MvcAdminController $controller
      * @param object $object
-     * @param array $options
+     * @param array $_options
      */
-    public function admin_table_cell($controller, $object, array $column, $options = []): string {
+    public function admin_table_cell($controller, $object, array $column, $_options = []): string {
         $value = empty($column['value_method']) ? $object->{$column['key']} : $controller->{$column['value_method']}($object);
         return '<td>'.$value.'</td>';
     }
     
     /**
-     * @param MvcAdminController $controller
+     * @param MvcAdminController $_controller
      * @param object $object
      * @param array $options
      */
-    public function admin_actions_cell($controller, $object, $options = []): string {
+    public function admin_actions_cell($_controller, $object, $options = []): string {
         
         $default = [
             'actions' => [
@@ -274,7 +277,7 @@ class MvcHelper {
     
     // To do: move this into an MvcUtilities class (?)
     
-    static function array_flatten(array $array): mixed {
+    public static function array_flatten(array $array): mixed {
 
         foreach ($array as $key => $value){
             $array[$key] = (array)$value;

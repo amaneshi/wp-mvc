@@ -2,12 +2,16 @@
 
 require_once __DIR__ . '/mvc_loader.php';
 
+/**
+ * Public framework API or convention-loaded MVC/WordPress entrypoint.
+ * @api
+ */
 class MvcPublicLoader extends MvcLoader {
 
     /**
-     * @param array $rules
+     * @param array $_rules
      */
-    public function flush_rewrite_rules($rules = []): void {
+    public function flush_rewrite_rules($_rules = []): void {
         global $wp_rewrite;
         $wp_rewrite->flush_rules(false);
     }
@@ -179,10 +183,10 @@ class MvcPublicLoader extends MvcLoader {
         $controller = $wp_query->get('mvc_controller');
 
         if ($controller) {
-            $query_params = $wp_query->query;
+            $query_params = $wp_query->query ?? [];
             $params = [];
             foreach ($query_params as $key => $value) {
-                $key = preg_replace('/^(mvc_)/', '', (string) $key);
+                $key = str_starts_with((string) $key, 'mvc_') ? substr((string) $key, 4) : (string) $key;
                 $params[$key] = $value;
             }
 

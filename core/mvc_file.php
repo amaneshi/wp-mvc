@@ -1,12 +1,16 @@
 <?php
 
 // To do: make this more robust and add error messages
+/**
+ * Public framework API or convention-loaded MVC/WordPress entrypoint.
+ * @api
+ */
 class MvcFile {
 
     /**
      * @param string|null $path
      */
-    function __construct(private $path=null)
+    public function __construct(private $path=null)
     {
     }
     
@@ -39,6 +43,9 @@ class MvcFile {
             }
         }
         $handle = fopen($path, 'w');
+        if ($handle === false) {
+            return false;
+        }
         fwrite($handle, (string) $content);
         fclose($handle);
         return null;

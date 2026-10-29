@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * Public framework API or convention-loaded MVC/WordPress entrypoint.
+ * @api
+ */
 class MvcDataValidationError {
 
     private array $errors = [];
@@ -8,7 +12,7 @@ class MvcDataValidationError {
      * @param string|null $field
      * @param string|null $message
      */
-    function __construct($field=null, $message=null) {
+    public function __construct($field=null, $message=null) {
         if ($field && $message) {
             $this->add_error($field, $message);
         }

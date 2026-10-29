@@ -32,6 +32,9 @@
  * @version 0.5.2
  * @author Stefan Walk <et@php.net>
  * @license MIT License
+ *
+ * Public framework API or convention-loaded MVC/WordPress entrypoint.
+ * @api
  */
  
 class Console_ProgressBar {
@@ -105,7 +108,7 @@ class Console_ProgressBar {
      * @param array  Options for the progress bar
      * @see reset
      */
-    function __construct(string $formatstring, string $bar, string $prefill, int $width,
+    public function __construct(string $formatstring, string $bar, string $prefill, int $width,
                                   int|float $target_num, array $options = [])
     {
         $this->reset($formatstring, $bar, $prefill, $width, $target_num, 
@@ -193,7 +196,7 @@ class Console_ProgressBar {
      * @param float  The target number for the bar
      * @param array  Options for the progress bar
      */
-    function reset(string $formatstring, string $bar, string $prefill, int $width, int|float $target_num,
+    public function reset(string $formatstring, string $bar, string $prefill, int $width, int|float $target_num,
                    array $options = []): bool
     {
         if ($target_num == 0) {
@@ -229,7 +232,7 @@ class Console_ProgressBar {
         $max = $cur; $max[1] = 3;
         // pre php-4.3.7 %3.2f meant 3 characters before . and two after
         // php-4.3.7 and later it means 3 characters for the whole number
-        $padding = version_compare(PHP_VERSION, '4.3.7', 'ge') ? 4 + $options['percent_precision'] : 3;
+        $padding = 4 + (int) $options['percent_precision'];
         $perc = '%4$\''.$options['percent_pad'][0].$padding.'.'
                 .$options['percent_precision'].'f';
         
@@ -275,7 +278,7 @@ class Console_ProgressBar {
      * @param int current position of the progress counter
      * @param int|float $current
      */
-    function update($current): void
+    public function update($current): void
     {
         $time = $this->_fetchTime();
         $this->_addDatapoint($current, $time);
@@ -288,7 +291,7 @@ class Console_ProgressBar {
             $this->display($current);
             return;
         }
-        if ($time - $this->_last_update_time < $this->_options['min_draw_interval'] && $current != $this->_target_num) {
+        if ($time - (float) $this->_last_update_time < $this->_options['min_draw_interval'] && $current != $this->_target_num) {
             return;
         }
         $this->erase();
@@ -305,17 +308,17 @@ class Console_ProgressBar {
      * @param int current position of the progress counter
      * @param int|float $current
      */
-    function display($current): bool
+    public function display($current): bool
     {
-        $percent = $current / $this->_target_num;
-        $filled = (int) round($percent * $this->_blen);
+        $percent = (float) $current / (float) $this->_target_num;
+        $filled = (int) round($percent * (float) $this->_blen);
         $visbar = substr($this->_bar, $this->_blen - $filled, $this->_blen);
         $elapsed = $this->_formatSeconds(
-            $this->_fetchTime() - $this->_start_time
+            $this->_fetchTime() - (float) ($this->_start_time ?? $this->_fetchTime())
         );
         $estimate = $this->_formatSeconds($this->_generateEstimate());
         $this->_rlen = printf($this->_skeleton, 
-            $visbar, $current, $this->_target_num, $percent * 100, $elapsed,
+            $visbar, $current, $this->_target_num, $percent * 100.0, $elapsed,
             $estimate
         );
         if ($this->_rlen < $this->_tlen) {
@@ -333,7 +336,7 @@ class Console_ProgressBar {
      *             cursor position
      * @param bool $clear
      */
-    function erase($clear = false): void
+    public function erase($clear = false): void
     {
         if ($this->_options['ansi_terminal'] && !$clear) {
             if ($this->_options['ansi_clear']) {
@@ -357,11 +360,12 @@ class Console_ProgressBar {
      * @param float The number of seconds
      * @param float|int $seconds
      */
-    function _formatSeconds($seconds): string
+    public function _formatSeconds($seconds): string
     {
-        $hou = floor($seconds/3600);
-        $min = floor(($seconds - $hou * 3600) / 60);
-        $sec = $seconds - $hou * 3600 - $min * 60;
+        $seconds = (float) $seconds;
+        $hou = floor($seconds / 3600.0);
+        $min = floor(($seconds - $hou * 3600.0) / 60.0);
+        $sec = $seconds - $hou * 3600.0 - $min * 60.0;
         if ($hou == 0) {
             $format = version_compare(PHP_VERSION, '4.3.7', 'ge') ? '%2$02d:%3$05.2f' : '%2$02d:%3$02.2f';
         } elseif ($hou < 100) {
@@ -373,9 +377,9 @@ class Console_ProgressBar {
     }
     // }}}
 
-    function _fetchTime(): int|float {
+    public function _fetchTime(): float {
         if (!function_exists('microtime')) {
-            return time();
+            return (float) time();
         }
         return microtime(true);
     }
@@ -384,7 +388,7 @@ class Console_ProgressBar {
      * @param float|int $time
      * @param int|float $val
      */
-    function _addDatapoint($val, $time): void {
+    public function _addDatapoint($val, $time): void {
         if (count($this->_rate_datapoints) 
             == $this->_options['num_datapoints']) {
             array_shift($this->_rate_datapoints);
@@ -395,13 +399,18 @@ class Console_ProgressBar {
         ];
     }
 
-    function _generateEstimate(): int|float {
+    public function _generateEstimate(): int|float {
         if (count($this->_rate_datapoints) < 2) {
             return 0.0;
         }
         $first = $this->_rate_datapoints[0];
         $last = end($this->_rate_datapoints);
-        return ($this->_target_num - $last['value'])/($last['value'] - $first['value']) * ($last['time'] - $first['time']);
+        $progress = (float) $last['value'] - (float) $first['value'];
+        if ($progress === 0.0) {
+            return 0.0;
+        }
+        return ((float) $this->_target_num - (float) $last['value']) / $progress
+            * ((float) $last['time'] - (float) $first['time']);
     }
 }
 

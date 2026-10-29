@@ -1,13 +1,19 @@
 <?php
 
+/**
+ * Public framework API or convention-loaded MVC/WordPress entrypoint.
+ * @api
+ */
 class MvcAdminController extends MvcController {
 
     public ?array $default_searchable_fields = null;
     public ?array $default_search_joins = null;
     public ?array $default_columns = null;
 
+    #[\Override]
     public bool $is_admin = true;
     
+    #[\Override]
     public function index(): void {
         $this->set_objects();
     }
@@ -109,9 +115,9 @@ class MvcAdminController extends MvcController {
     
     /**
      * @return void
-     * @param string $action
+     * @param string $_action
      */
-    public function after_action($action) {
+    public function after_action($_action) {
     }
     
     /**
@@ -143,9 +149,7 @@ class MvcAdminController extends MvcController {
         $admin_columns = [];
         foreach ($this->default_columns as $key => $value) {
             if (is_array($value)) {
-                if (!isset($value['label'])) {
-                    $value['label'] = MvcInflector::titleize($key);
-                }
+                $value['label'] ??= MvcInflector::titleize($key);
             } elseif (is_int($key)) {
                 $key = $value;
                 $value = $value == 'id' ? ['label' => 'ID'] : ['label' => MvcInflector::titleize($value)];

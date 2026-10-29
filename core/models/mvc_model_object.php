@@ -3,13 +3,20 @@
 // Row columns remain real public properties for serialization, null reads,
 // property_exists(), and indirect writes such as $object->items[] = $item.
 // __get() resolves associations and genuinely missing fields only.
+/**
+ * Database columns and associations are defined by the loaded model schema.
+ * @psalm-no-seal-properties
+ *
+ * Public framework API or convention-loaded MVC/WordPress entrypoint.
+ * @api
+ */
 #[\AllowDynamicProperties]
 class MvcModelObject {
     
     public ?string $__model_name = null;
     private array $__settings = [];
     
-    function __construct(MvcModel $model) {
+    public function __construct(MvcModel $model) {
         $this->__settings['properties'] = $model->properties;
         $this->__settings['model'] = [
             'name' => $model->name,
@@ -22,7 +29,7 @@ class MvcModelObject {
         return get_object_vars($this);
     }
 
-    // Preserve native public columns while exposing schema-dependent writes to Psalm 5.
+    // Preserve native public columns while exposing schema-dependent writes to static analysis.
     public function __set(string $property_name, mixed $value): void {
         $this->$property_name = $value;
     }
